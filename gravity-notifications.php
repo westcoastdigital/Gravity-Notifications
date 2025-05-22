@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name:  Gravity Notifications
-Plugin URI:   https://github.com/westcoastdigital/Gravity-Notifications
+Plugin URI:   https://jonmather.au
 Description:  Mangage notifications for Gravity Forms in one place so can assign to multiple forms.
 Version:      1.0.0
 Author:       Jon Mather
