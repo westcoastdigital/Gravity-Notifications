@@ -12,6 +12,7 @@ class GNT_CPT_FIELDS
         add_action('edit_form_after_title', [$this, 'description_field']);
         add_action('save_post', [$this, 'save_meta_box']);
         add_action('wp_ajax_gnt_get_form_fields', [$this, 'ajax_get_form_fields']);
+    add_action('wp_ajax_gnt_get_field_choices', [$this, 'ajax_get_field_choices']);
         add_action('admin_notices', [$this, 'maybe_show_errors']);
         add_filter('redirect_post_location', [$this, 'redirect_with_errors'], 10, 2);
     }
@@ -230,67 +231,104 @@ class GNT_CPT_FIELDS
         return $row;
     }
 
-    private function render_condition_row($condition = [], $form_index = 0, $condition_index = 0, $form_id = '', $is_template = false)
-    {
-        $display = $is_template ? 'style="display:none;"' : '';
-        $field_id = isset($condition['field_id']) ? $condition['field_id'] : '';
-        $operator = isset($condition['operator']) ? $condition['operator'] : '';
-        $value = isset($condition['value']) ? $condition['value'] : '';
+private function render_condition_row($condition = [], $form_index = 0, $condition_index = 0, $form_id = '', $is_template = false)
+{
+    $display = $is_template ? 'style="display:none;"' : '';
+    $field_id = isset($condition['field_id']) ? $condition['field_id'] : '';
+    $operator = isset($condition['operator']) ? $condition['operator'] : '';
+    $value = isset($condition['value']) ? $condition['value'] : '';
 
-        $row = "<div class='gnt-condition-row' data-condition-index='$condition_index' $display>";
-        
-        // Field selection (will be populated via AJAX when form is selected)
-        $row .= '<div class="gnt-condition-field">';
-        $row .= '<label>Field:</label>';
-        $row .= "<select name='gnt_assigned_forms[$form_index][conditional_logic][conditions][$condition_index][field_id]' class='gnt-field-select'>";
-        $row .= '<option value="">Select a field</option>';
-        
-        // If we have a form_id, populate the fields
-        if ($form_id && class_exists('GFAPI')) {
-            $form = GFAPI::get_form($form_id);
-            if ($form && isset($form['fields'])) {
-                foreach ($form['fields'] as $field) {
-                    $selected = selected($field_id, $field->id, false);
-                    $row .= "<option value='{$field->id}' $selected>{$field->label}</option>";
+    $row = "<div class='gnt-condition-row' data-condition-index='$condition_index' $display>";
+    
+    // Field selection (will be populated via AJAX when form is selected)
+    $row .= '<div class="gnt-condition-field">';
+    $row .= '<label>Field:</label>';
+    $row .= "<select name='gnt_assigned_forms[$form_index][conditional_logic][conditions][$condition_index][field_id]' class='gnt-field-select'>";
+    $row .= '<option value="">Select a field</option>';
+    
+    // Store selected field data for JS
+    $selected_field_data = null;
+    
+    // If we have a form_id, populate the fields
+    if ($form_id && class_exists('GFAPI')) {
+        $form = GFAPI::get_form($form_id);
+        if ($form && isset($form['fields'])) {
+            foreach ($form['fields'] as $field) {
+                $selected = selected($field_id, $field->id, false);
+                $row .= "<option value='{$field->id}' $selected data-field-type='{$field->type}' data-has-choices='" . (isset($field->choices) && !empty($field->choices) ? '1' : '0') . "'>{$field->label}</option>";
+                
+                // Store data for currently selected field
+                if ($field_id == $field->id) {
+                    $selected_field_data = $field;
                 }
             }
         }
-        
-        $row .= '</select>';
-        $row .= '</div>';
-
-        // Operator selection
-        $row .= '<div class="gnt-condition-operator">';
-        $row .= '<label>Operator:</label>';
-        $row .= "<select name='gnt_assigned_forms[$form_index][conditional_logic][conditions][$condition_index][operator]'>";
-        $operators = [
-            'is' => 'is',
-            'isnot' => 'is not',
-            'greater_than' => 'greater than',
-            'less_than' => 'less than',
-            'contains' => 'contains',
-            'starts_with' => 'starts with',
-            'ends_with' => 'ends with'
-        ];
-        
-        foreach ($operators as $op_value => $op_label) {
-            $selected = selected($operator, $op_value, false);
-            $row .= "<option value='$op_value' $selected>$op_label</option>";
-        }
-        $row .= '</select>';
-        $row .= '</div>';
-
-        // Value input
-        $row .= '<div class="gnt-condition-value">';
-        $row .= '<label>Value:</label>';
-        $row .= "<input type='text' name='gnt_assigned_forms[$form_index][conditional_logic][conditions][$condition_index][value]' value='" . esc_attr($value) . "' class='widefat'>";
-        $row .= '</div>';
-
-        $row .= '<button type="button" class="button-link gnt-remove-condition">Remove</button>';
-        $row .= '</div>';
-
-        return $row;
     }
+    
+    $row .= '</select>';
+    $row .= '</div>';
+
+    // Operator selection
+    $row .= '<div class="gnt-condition-operator">';
+    $row .= '<label>Operator:</label>';
+    $row .= "<select name='gnt_assigned_forms[$form_index][conditional_logic][conditions][$condition_index][operator]'>";
+    $operators = [
+        'is' => 'is',
+        'isnot' => 'is not',
+        'greater_than' => 'greater than',
+        'less_than' => 'less than',
+        'contains' => 'contains',
+        'starts_with' => 'starts with',
+        'ends_with' => 'ends with'
+    ];
+    
+    foreach ($operators as $op_value => $op_label) {
+        $selected = selected($operator, $op_value, false);
+        $row .= "<option value='$op_value' $selected>$op_label</option>";
+    }
+    $row .= '</select>';
+    $row .= '</div>';
+
+    // Value input/select (dynamic based on field type)
+    $row .= '<div class="gnt-condition-value">';
+    $row .= '<label>Value:</label>';
+    
+    // Determine if we should show select or text input
+    $show_select = false;
+    $field_choices = [];
+    
+    if ($selected_field_data && isset($selected_field_data->choices) && !empty($selected_field_data->choices)) {
+        $show_select = true;
+        $field_choices = $selected_field_data->choices;
+    }
+    
+    // Text input (default)
+    $text_display = $show_select ? 'style="display:none;"' : '';
+    $row .= "<input type='text' name='gnt_assigned_forms[$form_index][conditional_logic][conditions][$condition_index][value]' value='" . esc_attr($value) . "' class='widefat gnt-condition-text-value' $text_display>";
+    
+    // Select input (for fields with choices)
+    $select_display = $show_select ? '' : 'style="display:none;"';
+    $row .= "<select name='gnt_assigned_forms[$form_index][conditional_logic][conditions][$condition_index][value_select]' class='widefat gnt-condition-select-value' $select_display>";
+    $row .= '<option value="">Select a value</option>';
+    
+    if ($show_select) {
+        foreach ($field_choices as $choice) {
+            $choice_value = isset($choice['value']) ? $choice['value'] : $choice['text'];
+            $choice_text = $choice['text'];
+            $selected = selected($value, $choice_value, false);
+            $row .= "<option value='" . esc_attr($choice_value) . "' $selected>" . esc_html($choice_text) . "</option>";
+        }
+    }
+    
+    $row .= '</select>';
+    $row .= '</div>';
+
+    $row .= '<button type="button" class="button-link gnt-remove-condition">Remove</button>';
+    $row .= '</div>';
+
+    return $row;
+}
+
 
     public function save_meta_box($post_id)
     {
@@ -415,36 +453,104 @@ class GNT_CPT_FIELDS
     }
 
     // AJAX handler to get form fields
-    public function ajax_get_form_fields()
-    {
-        check_ajax_referer('gf_notifications_meta_box', 'nonce');
+ public function ajax_get_form_fields()
+{
+    check_ajax_referer('gf_notifications_meta_box', 'nonce');
+    
+    if (!current_user_can('edit_posts')) {
+        wp_die('Unauthorized');
+    }
+    
+    $form_id = absint($_POST['form_id']);
+    
+    if (!$form_id || !class_exists('GFAPI')) {
+        wp_send_json_error('Invalid form ID or Gravity Forms not available');
+    }
+    
+    $form = GFAPI::get_form($form_id);
+    
+    if (!$form || !isset($form['fields'])) {
+        wp_send_json_error('Form not found');
+    }
+    
+    $fields = [];
+    foreach ($form['fields'] as $field) {
+        $field_data = [
+            'id' => $field->id,
+            'label' => $field->label,
+            'type' => $field->type,
+            'has_choices' => isset($field->choices) && !empty($field->choices),
+            'choices' => []
+        ];
         
-        if (!current_user_can('edit_posts')) {
-            wp_die('Unauthorized');
+        // Add choices if they exist
+        if (isset($field->choices) && !empty($field->choices)) {
+            foreach ($field->choices as $choice) {
+                $field_data['choices'][] = [
+                    'value' => isset($choice['value']) ? $choice['value'] : $choice['text'],
+                    'text' => $choice['text']
+                ];
+            }
         }
         
-        $form_id = absint($_POST['form_id']);
-        
-        if (!$form_id || !class_exists('GFAPI')) {
-            wp_send_json_error('Invalid form ID or Gravity Forms not available');
+        $fields[] = $field_data;
+    }
+    
+    wp_send_json_success($fields);
+}
+
+// New AJAX handler to get field choices
+public function ajax_get_field_choices()
+{
+    check_ajax_referer('gf_notifications_meta_box', 'nonce');
+    
+    if (!current_user_can('edit_posts')) {
+        wp_die('Unauthorized');
+    }
+    
+    $form_id = absint($_POST['form_id']);
+    $field_id = sanitize_text_field($_POST['field_id']);
+    
+    if (!$form_id || !$field_id || !class_exists('GFAPI')) {
+        wp_send_json_error('Invalid parameters');
+    }
+    
+    $form = GFAPI::get_form($form_id);
+    
+    if (!$form || !isset($form['fields'])) {
+        wp_send_json_error('Form not found');
+    }
+    
+    // Find the specific field
+    $target_field = null;
+    foreach ($form['fields'] as $field) {
+        if ($field->id == $field_id) {
+            $target_field = $field;
+            break;
         }
-        
-        $form = GFAPI::get_form($form_id);
-        
-        if (!$form || !isset($form['fields'])) {
-            wp_send_json_error('Form not found');
-        }
-        
-        $fields = [];
-        foreach ($form['fields'] as $field) {
-            $fields[] = [
-                'id' => $field->id,
-                'label' => $field->label
+    }
+    
+    if (!$target_field) {
+        wp_send_json_error('Field not found');
+    }
+    
+    $response = [
+        'has_choices' => isset($target_field->choices) && !empty($target_field->choices),
+        'choices' => []
+    ];
+    
+    if ($response['has_choices']) {
+        foreach ($target_field->choices as $choice) {
+            $response['choices'][] = [
+                'value' => isset($choice['value']) ? $choice['value'] : $choice['text'],
+                'text' => $choice['text']
             ];
         }
-        
-        wp_send_json_success($fields);
     }
+    
+    wp_send_json_success($response);
+}
+
 
     public function redirect_with_errors($location, $post_id)
     {

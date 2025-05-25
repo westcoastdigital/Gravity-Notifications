@@ -96,6 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Insert before the template
                 conditionsContainer.insertBefore(newCondition, template);
+                
+                // Initialize dynamic value field for the new condition row
+                initializeDynamicValueFieldsForRow(newCondition);
             }
         }
         
@@ -144,7 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     let options = '<option value="">Select a field</option>';
                     data.data.forEach(field => {
-                        options += `<option value="${field.id}">${field.label}</option>`;
+                        const hasChoices = field.has_choices ? '1' : '0';
+                        options += `<option value="${field.id}" data-field-type="${field.type}" data-has-choices="${hasChoices}">${escapeHtml(field.label)}</option>`;
                     });
                     fieldSelects.forEach(select => {
                         // Store current value to restore if it exists in new options
@@ -173,5 +177,173 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         }
+        
+        // Handle field selection changes for dynamic value fields
+        if (e.target.matches('.gnt-field-select')) {
+            handleFieldSelectionChange(e.target);
+        }
     });
+
+    // Initialize dynamic value fields on page load
+    initializeDynamicValueFields();
+
+    // === DYNAMIC VALUE FIELD FUNCTIONS ===
+
+    // Function to handle field selection changes
+    function handleFieldSelectionChange(fieldSelect) {
+        const conditionRow = fieldSelect.closest('.gnt-condition-row');
+        const valueContainer = conditionRow.querySelector('.gnt-condition-value');
+        const textInput = valueContainer.querySelector('.gnt-condition-text-value');
+        const selectInput = valueContainer.querySelector('.gnt-condition-select-value');
+        
+        const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
+        const hasChoices = selectedOption.getAttribute('data-has-choices') === '1';
+        const fieldType = selectedOption.getAttribute('data-field-type');
+        
+        if (hasChoices && fieldSelect.value) {
+            // Get form ID from the form select in the same repeater row
+            const formRow = fieldSelect.closest('.gnt-repeater-row');
+            const formSelect = formRow.querySelector('.gnt-form-select');
+            const formId = formSelect.value;
+            const fieldId = fieldSelect.value;
+            
+            if (formId && fieldId) {
+                // Fetch field choices via AJAX
+                fetchFieldChoices(formId, fieldId, selectInput, textInput);
+            } else {
+                // Show text input if no form/field selected
+                showTextInput(textInput, selectInput);
+            }
+        } else {
+            // Show text input for fields without choices
+            showTextInput(textInput, selectInput);
+        }
+    }
+
+    // Function to fetch field choices via AJAX
+    function fetchFieldChoices(formId, fieldId, selectInput, textInput) {
+        // Show loading state
+        selectInput.innerHTML = '<option value="">Loading...</option>';
+        selectInput.style.display = 'block';
+        textInput.style.display = 'none';
+        
+        const formData = new FormData();
+        formData.append('action', 'gnt_get_field_choices');
+        formData.append('form_id', formId);
+        formData.append('field_id', fieldId);
+        
+        // Get nonce value
+        const nonceField = document.getElementById('gf_notifications_meta_box_nonce');
+        if (nonceField) {
+            formData.append('nonce', nonceField.value);
+        }
+        
+        fetch(ajaxurl, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.has_choices) {
+                // Populate select with choices
+                let options = '<option value="">Select a value</option>';
+                data.data.choices.forEach(function(choice) {
+                    options += `<option value="${escapeHtml(choice.value)}">${escapeHtml(choice.text)}</option>`;
+                });
+                selectInput.innerHTML = options;
+                
+                // Copy any existing text value to select if it matches
+                const currentTextValue = textInput.value;
+                if (currentTextValue) {
+                    selectInput.value = currentTextValue;
+                }
+                
+                showSelectInput(selectInput, textInput);
+            } else {
+                // Field doesn't have choices, show text input
+                showTextInput(textInput, selectInput);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching field choices:', error);
+            // On error, fall back to text input
+            showTextInput(textInput, selectInput);
+        });
+    }
+
+    // Function to show text input and hide select
+    function showTextInput(textInput, selectInput) {
+        // Copy select value to text input if exists
+        const selectValue = selectInput.value;
+        if (selectValue && !textInput.value) {
+            textInput.value = selectValue;
+        }
+        
+        textInput.style.display = 'block';
+        selectInput.style.display = 'none';
+        
+        // Update the name attribute to use the text input
+        updateValueInputNames(textInput, selectInput, 'text');
+    }
+
+    // Function to show select input and hide text
+    function showSelectInput(selectInput, textInput) {
+        // Copy text value to select if it matches an option
+        const textValue = textInput.value;
+        if (textValue) {
+            selectInput.value = textValue;
+        }
+        
+        selectInput.style.display = 'block';
+        textInput.style.display = 'none';
+        
+        // Update the name attribute to use the select input
+        updateValueInputNames(textInput, selectInput, 'select');
+    }
+
+    // Function to update the name attributes so only the active input is submitted
+    function updateValueInputNames(textInput, selectInput, activeType) {
+        if (activeType === 'text') {
+            // Text input should be submitted
+            const originalName = textInput.getAttribute('name') || selectInput.getAttribute('name').replace('_select', '');
+            textInput.setAttribute('name', originalName);
+            selectInput.setAttribute('name', originalName + '_select_disabled');
+        } else {
+            // Select input should be submitted
+            const originalName = selectInput.getAttribute('name').replace('_select', '');
+            selectInput.setAttribute('name', originalName);
+            textInput.setAttribute('name', originalName + '_text_disabled');
+        }
+    }
+
+    // Function to initialize dynamic value fields on page load
+    function initializeDynamicValueFields() {
+        // Check existing condition rows on page load
+        const visibleConditionRows = document.querySelectorAll('.gnt-condition-row:not([style*="display:none"])');
+        visibleConditionRows.forEach(function(conditionRow) {
+            const fieldSelect = conditionRow.querySelector('.gnt-field-select');
+            
+            // Trigger change event to set up the value field correctly
+            if (fieldSelect && fieldSelect.value) {
+                handleFieldSelectionChange(fieldSelect);
+            }
+        });
+    }
+
+    // Function to initialize dynamic value fields for a specific row (used when adding new conditions)
+    function initializeDynamicValueFieldsForRow(conditionRow) {
+        const valueContainer = conditionRow.querySelector('.gnt-condition-value');
+        const textInput = valueContainer.querySelector('.gnt-condition-text-value');
+        const selectInput = valueContainer.querySelector('.gnt-condition-select-value');
+        
+        // Ensure text input is shown by default for new rows
+        showTextInput(textInput, selectInput);
+    }
+
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 });
