@@ -1,18 +1,22 @@
 # Gravity Notifications
+
 Mangage notifications for Gravity Forms in one place so can assign to multiple forms.
 
 ## Requirements
-* php 8.0
-* WordPress 6.8
-* Gravity Forms (tested with v 2.9.8)
+
+- php 8.0
+- WordPress 6.8
+- Gravity Forms (tested with v 2.9.8)
 
 ## Usage
+
 1. Upload the zip file to your WordPress plugins folder
 2. Activate plugin and add license within the plugin screen
 3. Configure global header and footer in Forms > Global Notifcations in the admin screen
 4. Configure each notification within Forms > Notifications
 
 ## FAQ
+
 <details>
 
 <summary>Does this override the core Gravity Forms notifications?</summary>
@@ -65,11 +69,11 @@ If you have a field which is actually a group of fields, like Name or Address, t
 <br>
 For example, if you have a Name field with an ID of 1, then the fields would be more like:
 <br>
-| Field  | Tag ID | Merge Tag |
+| Field | Tag ID | Merge Tag |
 | ------------- | ------------- | ------------- |
-| Prefix  | 1.1  | Name:1.1 |
-| First  | 1.2  | Name:1.2 |
-| Middle  |1.3  | Name:1.3 |
-| Suffix  | 1.4  | Name:1.4 |
+| Prefix | 1.1 | Name:1.1 |
+| First | 1.2 | Name:1.2 |
+| Middle |1.3 | Name:1.3 |
+| Suffix | 1.4 | Name:1.4 |
 
 </details>

@@ -1,21 +1,17 @@
-// Create this file at: assets/js/license-admin.js
-
 jQuery(document).ready(function($) {
     
-    // Handle license validation button click
+    // Handle license validation
     $(document).on('click', '#gnt-validate-license', function(e) {
         e.preventDefault();
         
         var $button = $(this);
-        var $input = $('#gnt-license-key');
-        var $status = $('.gnt-license-status');
-        var $message = $('#gnt-license-message');
         var $spinner = $('.gnt-license-spinner');
-        
-        var licenseKey = $input.val().trim();
+        var $message = $('#gnt-license-message');
+        var $status = $('.gnt-license-status');
+        var licenseKey = $('#gnt-license-key').val().trim();
         
         if (!licenseKey) {
-            showMessage('Please enter a license key', 'error');
+            showMessage(gntLicense.error, 'Please enter a license key', 'error');
             return;
         }
         
@@ -24,7 +20,6 @@ jQuery(document).ready(function($) {
         $spinner.show();
         $message.empty();
         
-        // Send AJAX request
         $.ajax({
             url: gntLicense.ajax_url,
             type: 'POST',
@@ -35,44 +30,133 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success) {
-                    $status.removeClass('gnt-license-invalid')
-                           .addClass('gnt-license-valid')
-                           .text(gntLicense.valid);
-                    
-                    showMessage(response.data.message, 'success');
-                    
-                    // Reload page after successful validation to clear any error notices
+                    showMessage(response.data.message, null, 'success');
+                    updateLicenseStatus('valid');
+                    // Reload the page to show the deactivate button
                     setTimeout(function() {
                         location.reload();
                     }, 1500);
                 } else {
-                    $status.removeClass('gnt-license-valid')
-                           .addClass('gnt-license-invalid')
-                           .text(gntLicense.invalid);
-                    
-                    showMessage(response.data.message, 'error');
+                    showMessage(response.data.message, null, 'error');
+                    updateLicenseStatus('invalid');
                 }
             },
             error: function() {
-                $status.removeClass('gnt-license-valid')
-                       .addClass('gnt-license-invalid')
-                       .text(gntLicense.invalid);
-                
-                showMessage(gntLicense.error, 'error');
+                showMessage(gntLicense.error, null, 'error');
+                updateLicenseStatus('invalid');
             },
             complete: function() {
-                // Reset button state
-                $button.prop('disabled', false).text('Validate');
+                $button.prop('disabled', false).text(gntLicense.valid);
                 $spinner.hide();
             }
         });
+    });
+    
+    // Handle license deactivation
+    $(document).on('click', '#gnt-deactivate-license', function(e) {
+        e.preventDefault();
         
-        function showMessage(message, type) {
-            $message.removeClass('success error')
-                   .addClass('gnt-license-message ' + type)
-                   .text(message);
+        if (!confirm(gntLicense.confirm_deactivate)) {
+            return;
+        }
+        
+        var $button = $(this);
+        var $spinner = $('.gnt-license-spinner');
+        var $message = $('#gnt-license-message');
+        var $status = $('.gnt-license-status');
+        var $licenseInput = $('#gnt-license-key');
+        
+        // Show loading state
+        $button.prop('disabled', true).text(gntLicense.deactivating);
+        $spinner.show();
+        $message.empty();
+        
+        $.ajax({
+            url: gntLicense.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'gnt_deactivate_license',
+                nonce: gntLicense.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    showMessage(response.data.message, null, 'success');
+                    updateLicenseStatus('inactive');
+                    
+                    // Clear the license input field
+                    $licenseInput.val('');
+                    
+                    // Reload the page to update the interface
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showMessage(response.data.message, null, 'error');
+                }
+            },
+            error: function() {
+                showMessage(gntLicense.error, null, 'error');
+            },
+            complete: function() {
+                $button.prop('disabled', false).text('Deactivate');
+                $spinner.hide();
+            }
+        });
+    });
+    
+    // Show/hide license key on toggle
+    $(document).on('click', '.gnt-toggle-license-visibility', function(e) {
+        e.preventDefault();
+        var $input = $('#gnt-license-key');
+        var $icon = $(this).find('i');
+        
+        if ($input.attr('type') === 'password') {
+            $input.attr('type', 'text');
+            $icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            $input.attr('type', 'password');
+            $icon.removeClass('fa-eye-slash').addClass('fa-eye');
         }
     });
+    
+    // Helper function to show messages
+    function showMessage(message, title, type) {
+        var $message = $('#gnt-license-message');
+        var className = type === 'success' ? 'gnt-license-message success' : 'gnt-license-message error';
+        
+        var fullMessage = title ? title + ': ' + message : message;
+        
+        $message
+            .removeClass('success error')
+            .addClass(className.split(' ')[1])
+            .html(fullMessage);
+    }
+    
+    // Helper function to update license status display
+    function updateLicenseStatus(status) {
+        var $status = $('.gnt-license-status');
+        var statusText, statusClass;
+        
+        switch(status) {
+            case 'valid':
+                statusText = gntLicense.valid;
+                statusClass = 'gnt-license-valid';
+                break;
+            case 'invalid':
+                statusText = gntLicense.invalid;
+                statusClass = 'gnt-license-invalid';
+                break;
+            case 'inactive':
+                statusText = gntLicense.inactive;
+                statusClass = 'gnt-license-invalid';
+                break;
+        }
+        
+        $status
+            .removeClass('gnt-license-valid gnt-license-invalid')
+            .addClass(statusClass)
+            .text(statusText);
+    }
     
     // Allow Enter key to trigger validation
     $(document).on('keypress', '#gnt-license-key', function(e) {
@@ -80,4 +164,5 @@ jQuery(document).ready(function($) {
             $('#gnt-validate-license').click();
         }
     });
+    
 });

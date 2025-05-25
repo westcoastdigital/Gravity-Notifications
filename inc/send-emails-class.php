@@ -144,202 +144,202 @@ class GNT_SEND_EMAILS
     }
 
 
-private function evaluate_conditional_logic($entry, $form, $logic)
-{
-    if (empty($logic['conditions']) || !is_array($logic['conditions'])) {
-        return true; // No conditions to evaluate = pass
-    }
-
-    $results = [];
-
-    foreach ($logic['conditions'] as $condition) {
-        $field_id = $condition['field_id'];
-        $operator = $condition['operator'];
-        $expected = $condition['value'];
-
-        // Get the field object from the form
-        $field = null;
-        foreach ($form['fields'] as $form_field) {
-            if ($form_field->id == $field_id) {
-                $field = $form_field;
-                break;
-            }
+    private function evaluate_conditional_logic($entry, $form, $logic)
+    {
+        if (empty($logic['conditions']) || !is_array($logic['conditions'])) {
+            return true; // No conditions to evaluate = pass
         }
 
-        // Get the actual value from the entry
-        $actual = rgar($entry, $field_id);
+        $results = [];
 
-        // Handle different field types and their value storage
-        if ($field) {
-            $actual = $this->normalize_field_value($actual, $field, $entry, $field_id);
+        foreach ($logic['conditions'] as $condition) {
+            $field_id = $condition['field_id'];
+            $operator = $condition['operator'];
+            $expected = $condition['value'];
+
+            // Get the field object from the form
+            $field = null;
+            foreach ($form['fields'] as $form_field) {
+                if ($form_field->id == $field_id) {
+                    $field = $form_field;
+                    break;
+                }
+            }
+
+            // Get the actual value from the entry
+            $actual = rgar($entry, $field_id);
+
+            // Handle different field types and their value storage
+            if ($field) {
+                $actual = $this->normalize_field_value($actual, $field, $entry, $field_id);
+            }
+
+            $result = $this->compare_values($actual, $expected, $operator);
+            $results[] = $result;
         }
 
-        $result = $this->compare_values($actual, $expected, $operator);
-        $results[] = $result;
+        // Logic type determines overall outcome
+        if ($logic['logic_type'] === 'any') {
+            return in_array(true, $results, true);
+        }
+
+        // Default to 'all'
+        return !in_array(false, $results, true);
     }
 
-    // Logic type determines overall outcome
-    if ($logic['logic_type'] === 'any') {
-        return in_array(true, $results, true);
-    }
-
-    // Default to 'all'
-    return !in_array(false, $results, true);
-}
-
-/**
- * Normalize field values based on field type
- */
-private function normalize_field_value($actual, $field, $entry, $field_id)
-{
-    switch ($field->type) {
-        case 'checkbox':
-            // Checkbox fields store multiple values as separate entries (field_id.1, field_id.2, etc.)
-            $checkbox_values = [];
-            foreach ($entry as $key => $value) {
-                if (strpos($key, $field_id . '.') === 0 && !empty($value)) {
-                    $checkbox_values[] = $value;
-                }
-            }
-            return $checkbox_values;
-            
-        case 'multiselect':
-            // Multi-select values are stored as JSON array or comma-separated
-            if (is_string($actual) && (strpos($actual, '[') === 0 || strpos($actual, ',') !== false)) {
-                // Try to decode JSON first
-                $decoded = json_decode($actual, true);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    return $decoded;
-                }
-                // Fall back to comma-separated
-                return array_map('trim', explode(',', $actual));
-            }
-            return is_array($actual) ? $actual : [$actual];
-            
-        case 'select':
-        case 'radio':
-            // For select and radio, the stored value might be different from display text
-            // Check if we need to map the value through choices
-            if (isset($field->choices) && !empty($field->choices)) {
-                foreach ($field->choices as $choice) {
-                    if ($choice['value'] === $actual) {
-                        return $actual; // Value matches, return as is
+    /**
+     * Normalize field values based on field type
+     */
+    private function normalize_field_value($actual, $field, $entry, $field_id)
+    {
+        switch ($field->type) {
+            case 'checkbox':
+                // Checkbox fields store multiple values as separate entries (field_id.1, field_id.2, etc.)
+                $checkbox_values = [];
+                foreach ($entry as $key => $value) {
+                    if (strpos($key, $field_id . '.') === 0 && !empty($value)) {
+                        $checkbox_values[] = $value;
                     }
                 }
-            }
-            return $actual;
-            
-        case 'name':
-            // Name fields have sub-fields (first, last, etc.)
-            if (strpos($field_id, '.') !== false) {
-                return rgar($entry, $field_id);
-            }
-            // If checking the whole name field, concatenate parts
-            $name_parts = [];
-            for ($i = 1; $i <= 6; $i++) { // Name field can have up to 6 parts
-                $part = rgar($entry, $field_id . '.' . $i);
-                if (!empty($part)) {
-                    $name_parts[] = $part;
-                }
-            }
-            return implode(' ', $name_parts);
-            
-        case 'address':
-            // Address fields have sub-fields
-            if (strpos($field_id, '.') !== false) {
-                return rgar($entry, $field_id);
-            }
-            // If checking the whole address, concatenate parts
-            $address_parts = [];
-            $address_keys = ['.1', '.2', '.3', '.4', '.5', '.6']; // street, line2, city, state, zip, country
-            foreach ($address_keys as $key) {
-                $part = rgar($entry, $field_id . $key);
-                if (!empty($part)) {
-                    $address_parts[] = $part;
-                }
-            }
-            return implode(' ', $address_parts);
-            
-        case 'phone':
-        case 'email':
-        case 'website':
-        case 'text':
-        case 'textarea':
-        case 'number':
-        case 'hidden':
-        default:
-            return $actual;
-    }
-}
+                return $checkbox_values;
 
-/**
- * Compare values based on operator
- */
-private function compare_values($actual, $expected, $operator)
-{
-    // Handle array values (checkbox, multiselect)
-    if (is_array($actual)) {
+            case 'multiselect':
+                // Multi-select values are stored as JSON array or comma-separated
+                if (is_string($actual) && (strpos($actual, '[') === 0 || strpos($actual, ',') !== false)) {
+                    // Try to decode JSON first
+                    $decoded = json_decode($actual, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        return $decoded;
+                    }
+                    // Fall back to comma-separated
+                    return array_map('trim', explode(',', $actual));
+                }
+                return is_array($actual) ? $actual : [$actual];
+
+            case 'select':
+            case 'radio':
+                // For select and radio, the stored value might be different from display text
+                // Check if we need to map the value through choices
+                if (isset($field->choices) && !empty($field->choices)) {
+                    foreach ($field->choices as $choice) {
+                        if ($choice['value'] === $actual) {
+                            return $actual; // Value matches, return as is
+                        }
+                    }
+                }
+                return $actual;
+
+            case 'name':
+                // Name fields have sub-fields (first, last, etc.)
+                if (strpos($field_id, '.') !== false) {
+                    return rgar($entry, $field_id);
+                }
+                // If checking the whole name field, concatenate parts
+                $name_parts = [];
+                for ($i = 1; $i <= 6; $i++) { // Name field can have up to 6 parts
+                    $part = rgar($entry, $field_id . '.' . $i);
+                    if (!empty($part)) {
+                        $name_parts[] = $part;
+                    }
+                }
+                return implode(' ', $name_parts);
+
+            case 'address':
+                // Address fields have sub-fields
+                if (strpos($field_id, '.') !== false) {
+                    return rgar($entry, $field_id);
+                }
+                // If checking the whole address, concatenate parts
+                $address_parts = [];
+                $address_keys = ['.1', '.2', '.3', '.4', '.5', '.6']; // street, line2, city, state, zip, country
+                foreach ($address_keys as $key) {
+                    $part = rgar($entry, $field_id . $key);
+                    if (!empty($part)) {
+                        $address_parts[] = $part;
+                    }
+                }
+                return implode(' ', $address_parts);
+
+            case 'phone':
+            case 'email':
+            case 'website':
+            case 'text':
+            case 'textarea':
+            case 'number':
+            case 'hidden':
+            default:
+                return $actual;
+        }
+    }
+
+    /**
+     * Compare values based on operator
+     */
+    private function compare_values($actual, $expected, $operator)
+    {
+        // Handle array values (checkbox, multiselect)
+        if (is_array($actual)) {
+            switch ($operator) {
+                case 'is':
+                    return in_array($expected, $actual);
+                case 'isnot':
+                    return !in_array($expected, $actual);
+                case 'contains':
+                    foreach ($actual as $value) {
+                        if (stripos($value, $expected) !== false) {
+                            return true;
+                        }
+                    }
+                    return false;
+                case 'starts_with':
+                    foreach ($actual as $value) {
+                        if (stripos($value, $expected) === 0) {
+                            return true;
+                        }
+                    }
+                    return false;
+                case 'ends_with':
+                    foreach ($actual as $value) {
+                        if (str_ends_with(strtolower($value), strtolower($expected))) {
+                            return true;
+                        }
+                    }
+                    return false;
+                case 'greater_than':
+                case 'less_than':
+                    // For arrays, we'll check if any value meets the condition
+                    foreach ($actual as $value) {
+                        if ($operator === 'greater_than' && floatval($value) > floatval($expected)) {
+                            return true;
+                        }
+                        if ($operator === 'less_than' && floatval($value) < floatval($expected)) {
+                            return true;
+                        }
+                    }
+                    return false;
+            }
+        }
+
+        // Handle single values
         switch ($operator) {
             case 'is':
-                return in_array($expected, $actual);
+                return $actual == $expected;
             case 'isnot':
-                return !in_array($expected, $actual);
-            case 'contains':
-                foreach ($actual as $value) {
-                    if (stripos($value, $expected) !== false) {
-                        return true;
-                    }
-                }
-                return false;
-            case 'starts_with':
-                foreach ($actual as $value) {
-                    if (stripos($value, $expected) === 0) {
-                        return true;
-                    }
-                }
-                return false;
-            case 'ends_with':
-                foreach ($actual as $value) {
-                    if (str_ends_with(strtolower($value), strtolower($expected))) {
-                        return true;
-                    }
-                }
-                return false;
+                return $actual != $expected;
             case 'greater_than':
+                return floatval($actual) > floatval($expected);
             case 'less_than':
-                // For arrays, we'll check if any value meets the condition
-                foreach ($actual as $value) {
-                    if ($operator === 'greater_than' && floatval($value) > floatval($expected)) {
-                        return true;
-                    }
-                    if ($operator === 'less_than' && floatval($value) < floatval($expected)) {
-                        return true;
-                    }
-                }
+                return floatval($actual) < floatval($expected);
+            case 'contains':
+                return stripos($actual, $expected) !== false;
+            case 'starts_with':
+                return stripos($actual, $expected) === 0;
+            case 'ends_with':
+                return str_ends_with(strtolower($actual), strtolower($expected));
+            default:
                 return false;
         }
     }
-
-    // Handle single values
-    switch ($operator) {
-        case 'is':
-            return $actual == $expected;
-        case 'isnot':
-            return $actual != $expected;
-        case 'greater_than':
-            return floatval($actual) > floatval($expected);
-        case 'less_than':
-            return floatval($actual) < floatval($expected);
-        case 'contains':
-            return stripos($actual, $expected) !== false;
-        case 'starts_with':
-            return stripos($actual, $expected) === 0;
-        case 'ends_with':
-            return str_ends_with(strtolower($actual), strtolower($expected));
-        default:
-            return false;
-    }
-}
 }
 
 new GNT_SEND_EMAILS();
