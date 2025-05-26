@@ -64,7 +64,7 @@
     border: 1px solid #ddd;
     padding: 15px;
     margin-bottom: 10px;
-    background: #f9f9f9;
+    background: #a1b7c9;
 }
 
 .gnt-form-select-wrapper {
@@ -98,6 +98,16 @@
     padding: 10px;
     background: #fff;
     border: 1px solid #ddd;
+}
+
+.wp-core-ui .button.gnt-add-row {
+    background: #135e96;
+    border-color: #135e96;
+    box-shadow: none;
+    color: #fff;
+    width: 100%;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
 
 .gnt-condition-field,
@@ -164,6 +174,16 @@ small {
     -ms-grid-columns: 1fr 10px 1fr;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #a1b7c9;
+}
+
+.gnt-message-wrapper small {
+    color: inherit;
+    padding: 0;
+    background: none;;
 }
 
 .gnt-message-wrapper .right {
@@ -193,4 +213,10 @@ small {
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+.gnt-blue-wrapper {
+    background: #c0d4ff;
+    padding: 10px;
+    margin-bottom: 10px;
 }

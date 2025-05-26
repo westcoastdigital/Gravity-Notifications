@@ -53,12 +53,14 @@ class GNT_CPT_FIELDS
             'message'           => get_post_meta($post->ID, '_gnt_message', true),
         ];
 
+        echo '<div class="gnt-blue-wrapper">';
         echo '<p class="gnt-toggle-wrapper"><label>Use on all forms?<br>
             <label class="gnt-toggle">
                 <input type="checkbox" name="gnt_use_all_forms" value="1" ' . checked($fields['use_all_forms'], 1, false) . '>
                 <span class="gnt-slider"></span>
             </label>
         </label></p>';
+        echo '</div>';
 
         // Get list of Gravity Forms
         if (class_exists('GFAPI')) {
@@ -134,6 +136,7 @@ class GNT_CPT_FIELDS
         echo '<p><label>Subject:<br><input type="text" name="gnt_subject" value="' . esc_attr($fields['subject']) . '" class="widefat"></label></p>';
 
         // Use Global Header Field
+        echo '<div class="gnt-blue-wrapper">';
         echo '<p class="gnt-toggle-wrapper"><label>Use Global Header?<br>
             <label class="gnt-toggle">
                 <input type="checkbox" name="gnt_use_global_header" value="1" ' . checked($fields['use_global_header'], 1, false) . '>
@@ -145,6 +148,7 @@ class GNT_CPT_FIELDS
             esc_url(admin_url('admin.php?page=gnt_global_notifications'))
         ) . '
         </p>';
+        echo '</div>';
 
         // Message Field (wp_editor)
         echo '<div class="gnt-message-wrapper">';
@@ -162,6 +166,7 @@ class GNT_CPT_FIELDS
         echo '</label></p>';
 
         // Use Global Footer Field
+        echo '<div class="gnt-blue-wrapper">';
         echo '<p class="gnt-toggle-wrapper"><label>Use Global Footer?<br>
             <label class="gnt-toggle">
                 <input type="checkbox" name="gnt_use_global_footer" value="1" ' . checked($fields['use_global_footer'], 1, false) . '>
@@ -172,6 +177,7 @@ class GNT_CPT_FIELDS
             __('This will use the global footer set in the <a href="%s" target="_blank" rel="noopener noreferrer">settings page</a>, if not set it just sends the body above without the global footer.', 'gnt'),
             esc_url(admin_url('admin.php?page=gnt_global_notifications'))
         ) . '</p>';
+        echo '</div>';
     }
 
     private function render_merge_tags($post_id, $class = 'gnt-merge-tag', $email_only = false)
