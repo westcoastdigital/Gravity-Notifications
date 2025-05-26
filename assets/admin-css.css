@@ -187,3 +187,10 @@ small {
 .email-wrap .gnt-merge-tags h4 {
     margin: 0;
 }
+
+.back-button {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}

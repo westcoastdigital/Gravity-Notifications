@@ -23,6 +23,7 @@ class GNT_CPT
         add_filter('disable_months_dropdown', [$this, 'remove_date_filter'], 10, 2);
         add_action('restrict_manage_posts', array($this, 'add_filters'));
         add_action('parse_query', array($this, 'filter_query'));
+        add_action('admin_footer', array($this, 'add_back_button'));
     }
 
     public function register_post_type()
@@ -105,7 +106,7 @@ class GNT_CPT
         $columns['gf_notifications_global_header'] = __('Global Header');
         $columns['gf_notifications_global_footer'] = __('Global Footer');
         $columns['gf_notifications_active'] = __('Active');
-        
+
         return $columns;
     }
 
@@ -113,7 +114,7 @@ class GNT_CPT
     public function custom_gf_notifications_columns_content($column, $post_id)
     {
         switch ($column) {
-            
+
             case 'gf_notifications_description':
                 $description = get_post_meta($post_id, 'gnt_description', true);
                 if ($description) {
@@ -129,47 +130,47 @@ class GNT_CPT
                     echo __('All Forms', 'gnt');
                 } else {
                     $forms = get_post_meta($post_id, '_gnt_assigned_forms', true);
-                    if($forms) {
+                    if ($forms) {
                         $link_array = [];
-                       foreach($forms as $form) {
-                        $form_id = $form['form_id'];
-                        $forminfo = RGFormsModel::get_form($form_id);
-                        if ($forminfo) {
-                            $form_title = esc_html($forminfo->title);
-                            $edit_url = admin_url('admin.php?page=gf_edit_forms&id=' . $form_id);
-                            $link_array[] = '<a href="' . esc_url($edit_url) . '">' . $form_title . '</a>';
+                        foreach ($forms as $form) {
+                            $form_id = $form['form_id'];
+                            $forminfo = RGFormsModel::get_form($form_id);
+                            if ($forminfo) {
+                                $form_title = esc_html($forminfo->title);
+                                $edit_url = admin_url('admin.php?page=gf_edit_forms&id=' . $form_id);
+                                $link_array[] = '<a href="' . esc_url($edit_url) . '">' . $form_title . '</a>';
+                            }
                         }
-                       }
-                       if(!empty($link_array)) {
-                        echo implode(', ', $link_array);
-                       } else {
-                        echo __('No forms assigned', 'gnt');
-                       }
+                        if (!empty($link_array)) {
+                            echo implode(', ', $link_array);
+                        } else {
+                            echo __('No forms assigned', 'gnt');
+                        }
                     } else {
                         echo __('No forms assigned', 'gnt');
                     }
                 }
                 break;
-            
+
             case 'gf_notifications_global_header':
                 $header = get_post_meta($post_id, '_gnt_use_global_header', true);
-                if($header) {
+                if ($header) {
                     echo '<span class="dashicons dashicons-yes"></span>';
                 } else {
                     echo '<span class="dashicons dashicons-no"></span>';
                 }
                 break;
-            
+
             case 'gf_notifications_global_footer':
                 // Display the global footer (example: stored in post meta)
                 $footer = get_post_meta($post_id, '_gnt_use_global_footer', true);
-                if($footer) {
+                if ($footer) {
                     echo '<span class="dashicons dashicons-yes"></span>';
                 } else {
                     echo '<span class="dashicons dashicons-no"></span>';
                 }
                 break;
-            
+
             case 'gf_notifications_active':
                 // Check if published
                 $status = get_post_status($post_id);
@@ -198,13 +199,14 @@ class GNT_CPT
         return $disable;
     }
 
-    public function add_filters() {
+    public function add_filters()
+    {
         global $typenow;
 
         if ($typenow === 'gf-notifications') {
             // Filter by Active Status
             $selected_status = isset($_GET['gf_notifications_active']) ? $_GET['gf_notifications_active'] : '';
-            ?>
+?>
             <select name="gf_notifications_active">
                 <option value=""><?php _e('All Statuses', 'gnt'); ?></option>
                 <option value="active" <?php selected($selected_status, 'active'); ?>><?php _e('Active (Published)', 'gnt'); ?></option>
@@ -224,11 +226,12 @@ class GNT_CPT
                     </option>
                 <?php endforeach; ?>
             </select>
-            <?php
+        <?php
         }
     }
 
-    public function filter_query($query) {
+    public function filter_query($query)
+    {
         global $pagenow;
 
         if (
@@ -276,6 +279,36 @@ class GNT_CPT
         }
     }
 
+    public function add_back_button()
+    {
+        $screen = get_current_screen();
+
+        // Only show on gf-notifications edit/add screens
+        if (!$screen || $screen->post_type !== 'gf-notifications' || $screen->base !== 'post') {
+            return;
+        }
+
+        $list_url = admin_url('edit.php?post_type=gf-notifications');
+        ?>
+        <script type="text/javascript">
+            jQuery(document).ready(function($) {
+                var $wrap = $('.wrap').first();
+
+                if ($wrap.length) {
+                    // Create the back button container
+                    var backButtonHtml = '<div class="back-to-notifications-container">' +
+                        '<a href="<?php echo esc_js(esc_url($list_url)); ?>" class="back-button">' +
+                        '<span class="dashicons dashicons-undo"></span>' +
+                        'Back to Notifications</a>' +
+                        '</div>';
+
+                    // Prepend to the beginning of .wrap
+                    $wrap.prepend(backButtonHtml);
+                }
+            });
+        </script>
+<?php
+    }
 }
 
 new GNT_CPT();
