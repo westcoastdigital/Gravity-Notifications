@@ -16,7 +16,6 @@ class GNT_CPT_FIELDS
         add_action('wp_ajax_gnt_get_field_choices', [$this, 'ajax_get_field_choices']);
         add_action('admin_notices', [$this, 'maybe_show_errors']);
         add_filter('redirect_post_location', [$this, 'redirect_with_errors'], 10, 2);
-        add_action('wp_ajax_gnt_get_email_fields', [$this, 'ajax_get_email_fields']);
     }
 
     public function register_meta_box()
@@ -110,75 +109,11 @@ class GNT_CPT_FIELDS
         echo '</div>';
 
         // To Email Field ID (conditional)
-        // echo '<div class="gnt-to-email-field" style="display: ' . ($fields['to_email_type'] === 'field_id' ? 'block' : 'none') . ';">';
-        // echo '<p><label>Email Field ID:<br><input type="text" name="gnt_to_email_field_id" value="' . esc_attr($fields['to_email_field_id']) . '" class="widefat" placeholder="e.g., Email:2"></label></p>';
-        // echo '<small>' . __('Enter the Field ID from your Gravity Form that contains the email address. EG: Email:2 to use email field', 'gnt') . '</small>';
-        // echo '</div>';
-        // echo '</div>';
-
-        // To Email Field ID (conditional)
         echo '<div class="gnt-to-email-field" style="display: ' . ($fields['to_email_type'] === 'field_id' ? 'block' : 'none') . ';">';
-        echo '<p><label>Email Field:<br>';
-        echo '<select name="gnt_to_email_field_id" class="widefat gnt-email-field-select">';
-        echo '<option value="">Select an email field</option>';
-
-        // Populate email fields from assigned forms
-        if (!empty($assigned_forms) && class_exists('GFAPI')) {
-            foreach ($assigned_forms as $form_data) {
-                $form_id = is_array($form_data) ? $form_data['form_id'] : $form_data;
-                if ($form_id) {
-                    $form = GFAPI::get_form($form_id);
-                    if ($form && !empty($form['fields'])) {
-                        $form_has_email_fields = false;
-                        foreach ($form['fields'] as $field) {
-                            if ($field->type === 'email') {
-                                if (!$form_has_email_fields) {
-                                    echo '<optgroup label="' . esc_attr($form['title']) . '">';
-                                    $form_has_email_fields = true;
-                                }
-                                $field_value = $field->label . ':' . $field->id;
-                                $selected = selected($fields['to_email_field_id'], $field_value, false);
-                                echo '<option value="' . esc_attr($field_value) . '" ' . $selected . '>' . esc_html($field->label) . '</option>';
-                            }
-                        }
-                        if ($form_has_email_fields) {
-                            echo '</optgroup>';
-                        }
-                    }
-                }
-            }
-        }
-
-        // If using all forms, show all email fields from all forms
-        if ($fields['use_all_forms'] && class_exists('GFAPI')) {
-            $all_forms = GFAPI::get_forms();
-            foreach ($all_forms as $form) {
-                if (!empty($form['fields'])) {
-                    $form_has_email_fields = false;
-                    foreach ($form['fields'] as $field) {
-                        if ($field->type === 'email') {
-                            if (!$form_has_email_fields) {
-                                echo '<optgroup label="' . esc_attr($form['title']) . '">';
-                                $form_has_email_fields = true;
-                            }
-                            $field_value = $field->label . ':' . $field->id;
-                            $selected = selected($fields['to_email_field_id'], $field_value, false);
-                            echo '<option value="' . esc_attr($field_value) . '" ' . $selected . '>' . esc_html($field->label) . '</option>';
-                        }
-                    }
-                    if ($form_has_email_fields) {
-                        echo '</optgroup>';
-                    }
-                }
-            }
-        }
-
-        echo '</select>';
-        echo '</label></p>';
-        echo '<small>' . __('Select an email field from your assigned forms to use as the recipient email address.', 'gnt') . '</small>';
+        echo '<p><label>Email Field ID:<br><input type="text" name="gnt_to_email_field_id" value="' . esc_attr($fields['to_email_field_id']) . '" class="widefat" placeholder="e.g., Email:2"></label></p>';
+        echo '<small>' . __('Enter the Field ID from your Gravity Form that contains the email address. EG: Email:2 to use email field', 'gnt') . '</small>';
         echo '</div>';
         echo '</div>';
-
 
         // From Name Field
         echo '<p><label>From Name:<br><input type="text" name="gnt_from_name" value="' . esc_attr($fields['from_name']) . '" class="widefat"></label></p>';
@@ -731,68 +666,6 @@ class GNT_CPT_FIELDS
             echo '</ul></div>';
             delete_transient("gnt_notification_errors_{$post->ID}");
         }
-    }
-
-    public function ajax_get_email_fields()
-    {
-        check_ajax_referer('gf_notifications_meta_box', 'nonce');
-
-        if (!current_user_can('edit_posts')) {
-            wp_die('Unauthorized');
-        }
-
-        $post_id = absint($_POST['post_id']);
-        if (!$post_id) {
-            wp_send_json_error('Invalid post ID');
-        }
-
-        $assigned_forms = get_post_meta($post_id, '_gnt_assigned_forms', true);
-        $use_all_forms = get_post_meta($post_id, '_gnt_use_all_forms', true);
-
-        $html = '<option value="">Select an email field</option>';
-
-        if (class_exists('GFAPI')) {
-            $forms_to_check = [];
-
-            if ($use_all_forms) {
-                $forms_to_check = GFAPI::get_forms();
-            } elseif (is_array($assigned_forms) && !empty($assigned_forms)) {
-                foreach ($assigned_forms as $form_data) {
-                    $form_id = is_array($form_data) ? $form_data['form_id'] : $form_data;
-                    if ($form_id) {
-                        $form = GFAPI::get_form($form_id);
-                        if ($form) {
-                            $forms_to_check[] = $form;
-                        }
-                    }
-                }
-            }
-
-            foreach ($forms_to_check as $form) {
-                if (!empty($form['fields'])) {
-                    $form_has_email_fields = false;
-                    $optgroup_html = '';
-
-                    foreach ($form['fields'] as $field) {
-                        if ($field->type === 'email') {
-                            if (!$form_has_email_fields) {
-                                $optgroup_html .= '<optgroup label="' . esc_attr($form['title']) . '">';
-                                $form_has_email_fields = true;
-                            }
-                            $field_value = $field->label . ':' . $field->id;
-                            $optgroup_html .= '<option value="' . esc_attr($field_value) . '">' . esc_html($field->label) . '</option>';
-                        }
-                    }
-
-                    if ($form_has_email_fields) {
-                        $optgroup_html .= '</optgroup>';
-                        $html .= $optgroup_html;
-                    }
-                }
-            }
-        }
-
-        wp_send_json_success(['html' => $html]);
     }
 }
 
