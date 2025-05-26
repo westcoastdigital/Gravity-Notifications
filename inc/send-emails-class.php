@@ -102,10 +102,16 @@ class GNT_SEND_EMAILS
         if ($global_header) {
             $header = get_option('gnt_global_header_content') ?? '';
         }
+        if($header !== '') {
+            $header = do_shortcode($header); // Convert shortcodes in the header
+        }
 
         $footer = '';
         if ($global_footer) {
             $footer = get_option('gnt_global_footer_content') ?? '';
+        }
+        if($footer !== '') {
+            $footer = do_shortcode($footer); // Convert shortcodes in the footer
         }
 
         $body = get_post_meta($id, '_gnt_message', true) ?? '';

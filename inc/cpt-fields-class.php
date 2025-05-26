@@ -143,6 +143,7 @@ class GNT_CPT_FIELDS
         </p>';
 
         // Message Field (wp_editor)
+        echo gnt_shortcodes_notice();
         echo '<p><label>Message:<br>';
         echo '<small>' . __('You can use a merge tag to to dynamically populate from form inputs. eg: {Name:1.3} would return the first name of a Name field', 'gnt') . '</small>';
         wp_editor($fields['message'], 'gnt_message_' . $post->ID, ['textarea_name' => 'gnt_message', 'textarea_rows' => 10]);
