@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (allFormsToggle) {
         allFormsToggle.addEventListener('change', updateVisibility);
         updateVisibility(); // Initialize visibility on page load
+        setTimeout(refreshMergeTags, 100);
     }
 
     // Initialize to email visibility
@@ -176,6 +177,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     select.innerHTML = '<option value="">Error loading fields</option>';
                 });
             });
+
+            // update merge tags after form change
+            setTimeout(refreshMergeTags, 100);
         }
         
         // Handle field selection changes for dynamic value fields
@@ -346,4 +350,86 @@ document.addEventListener('DOMContentLoaded', () => {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    // Initialize merge tag clicks
+    initializeMergeTagClicks();
 });
+
+
+// Function to refresh merge tags when forms change
+function refreshMergeTags() {
+    const container = document.getElementById('gnt-merge-tags-container');
+    if (!container) return;
+    
+    // Get current post ID from URL or hidden field
+    const postId = getPostId();
+    if (!postId) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'gnt_refresh_merge_tags');
+    formData.append('post_id', postId);
+    
+    const nonceField = document.getElementById('gf_notifications_meta_box_nonce');
+    if (nonceField) {
+        formData.append('nonce', nonceField.value);
+    }
+    
+    container.innerHTML = '<p>Loading merge tags...</p>';
+    
+    fetch(ajaxurl, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            container.innerHTML = data.data.html;
+            initializeMergeTagClicks();
+        } else {
+            container.innerHTML = '<p>Error loading merge tags.</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing merge tags:', error);
+        container.innerHTML = '<p>Error loading merge tags.</p>';
+    });
+}
+
+// Helper function to get post ID
+function getPostId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('post') || document.getElementById('post_ID')?.value;
+}
+
+// Function to make merge tags clickable
+function initializeMergeTagClicks() {
+    document.querySelectorAll('.gnt-merge-tag').forEach(tag => {
+        tag.style.cursor = 'pointer';
+        tag.style.padding = '2px 6px';
+        tag.style.margin = '2px';
+        tag.style.backgroundColor = '#f0f0f1';
+        tag.style.border = '1px solid #c3c4c7';
+        tag.style.borderRadius = '3px';
+        tag.style.display = 'inline-block';
+        
+        tag.addEventListener('click', function() {
+            const mergeTag = this.getAttribute('data-tag');
+            const editor = tinymce.get('gnt_message_' + getPostId());
+            
+            if (editor && !editor.isHidden()) {
+                editor.execCommand('mceInsertContent', false, mergeTag);
+            } else {
+                // Fallback to textarea
+                const textarea = document.querySelector('textarea[name="gnt_message"]');
+                if (textarea) {
+                    const cursorPos = textarea.selectionStart;
+                    const textBefore = textarea.value.substring(0, cursorPos);
+                    const textAfter = textarea.value.substring(cursorPos);
+                    textarea.value = textBefore + mergeTag + textAfter;
+                    textarea.focus();
+                    textarea.setSelectionRange(cursorPos + mergeTag.length, cursorPos + mergeTag.length);
+                }
+            }
+        });
+    });
+}

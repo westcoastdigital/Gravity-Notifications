@@ -9,6 +9,7 @@ class GNT_CPT_FIELDS
     public function __construct()
     {
         add_action('add_meta_boxes', [$this, 'register_meta_box']);
+        add_action('wp_ajax_gnt_refresh_merge_tags', [$this, 'ajax_refresh_merge_tags']);
         add_action('edit_form_after_title', [$this, 'description_field']);
         add_action('save_post', [$this, 'save_meta_box']);
         add_action('wp_ajax_gnt_get_form_fields', [$this, 'ajax_get_form_fields']);
@@ -143,9 +144,17 @@ class GNT_CPT_FIELDS
         </p>';
 
         // Message Field (wp_editor)
+        echo '<div class="gnt-message-wrapper">';
+        echo '<div class="left">';
         echo gnt_shortcodes_notice();
-        echo '<p><label>Message:<br>';
+        echo '</div>';
+        echo '<div class="right">';
+        echo '<h2 style="padding: 0;">' . __('Available Merge Tags', 'gnt') . '</h2>';
         echo '<small>' . __('You can use a merge tag to to dynamically populate from form inputs. eg: {Name:1.3} would return the first name of a Name field', 'gnt') . '</small>';
+        echo $this->render_merge_tags($post->ID);
+        echo '</div>';
+        echo '</div>';
+        echo '<p><label>Message:<br>';
         wp_editor($fields['message'], 'gnt_message_' . $post->ID, ['textarea_name' => 'gnt_message', 'textarea_rows' => 10]);
         echo '</label></p>';
 
@@ -160,6 +169,84 @@ class GNT_CPT_FIELDS
             __('This will use the global footer set in the <a href="%s" target="_blank" rel="noopener noreferrer">settings page</a>, if not set it just sends the body above without the global footer.', 'gnt'),
             esc_url(admin_url('admin.php?page=gnt_global_notifications'))
         ) . '</p>';
+    }
+
+    private function render_merge_tags($post_id)
+    {
+        $assigned_forms = get_post_meta($post_id, '_gnt_assigned_forms', true);
+        $use_all_forms = get_post_meta($post_id, '_gnt_use_all_forms', true);
+
+        if (!class_exists('GFAPI')) {
+            return '<p>Gravity Forms not available.</p>';
+        }
+
+        $forms_to_process = [];
+
+        if ($use_all_forms) {
+            $forms_to_process = GFAPI::get_forms();
+        } elseif (is_array($assigned_forms) && !empty($assigned_forms)) {
+            foreach ($assigned_forms as $form_data) {
+                $form_id = is_array($form_data) ? $form_data['form_id'] : $form_data;
+                if ($form_id) {
+                    $form = GFAPI::get_form($form_id);
+                    if ($form) {
+                        $forms_to_process[] = $form;
+                    }
+                }
+            }
+        }
+
+        if (empty($forms_to_process)) {
+            return '<p>No forms assigned. Assign forms to see available merge tags.</p>';
+        }
+
+        $output = '<div class="gnt-merge-tags">';
+
+        foreach ($forms_to_process as $form) {
+            $output .= '<h4>Form: ' . esc_html($form['title']) . '</h4>';
+            $output .= '<div class="gnt-merge-tags-list">';
+
+            if (!empty($form['fields'])) {
+                foreach ($form['fields'] as $field) {
+                    $merge_tag = '{' . $field->label . ':' . $field->id . '}';
+                    $output .= '<span class="gnt-merge-tag" data-tag="' . esc_attr($merge_tag) . '">' . esc_html($merge_tag) . '</span>';
+
+                    // Add sub-fields for name, address fields etc.
+                    if ($field->type === 'name' && !empty($field->inputs)) {
+                        foreach ($field->inputs as $input) {
+                            if (!isset($input['isHidden']) || !$input['isHidden']) {
+                                $sub_merge_tag = '{' . $field->label . ':' . $input['id'] . '}';
+                                $output .= '<span class="gnt-merge-tag gnt-sub-field" data-tag="' . esc_attr($sub_merge_tag) . '">' . esc_html($sub_merge_tag) . '</span>';
+                            }
+                        }
+                    }
+                }
+            }
+
+            $output .= '</div>';
+        }
+
+        $output .= '</div>';
+
+        return $output;
+    }
+
+    public function ajax_refresh_merge_tags()
+    {
+        check_ajax_referer('gf_notifications_meta_box', 'nonce');
+
+        if (!current_user_can('edit_posts')) {
+            wp_die('Unauthorized');
+        }
+
+        $post_id = absint($_POST['post_id']);
+
+        if (!$post_id) {
+            wp_send_json_error('Invalid post ID');
+        }
+
+        $html = $this->render_merge_tags($post_id);
+        wp_send_json_success(['html' => $html]);
     }
 
     public function description_field($post)
