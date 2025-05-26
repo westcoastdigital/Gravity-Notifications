@@ -433,3 +433,41 @@ function initializeMergeTagClicks() {
         });
     });
 }
+
+// Function to refresh email field dropdown
+function refreshEmailFieldDropdown() {
+    const emailFieldSelect = document.querySelector('.gnt-email-field-select');
+    if (!emailFieldSelect) return;
+    
+    const postId = getPostId();
+    if (!postId) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'gnt_get_email_fields');
+    formData.append('post_id', postId);
+    
+    const nonceField = document.getElementById('gf_notifications_meta_box_nonce');
+    if (nonceField) {
+        formData.append('nonce', nonceField.value);
+    }
+    
+    const currentValue = emailFieldSelect.value;
+    
+    fetch(ajaxurl, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            emailFieldSelect.innerHTML = data.data.html;
+            // Try to restore previous selection
+            if (currentValue) {
+                emailFieldSelect.value = currentValue;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing email fields:', error);
+    });
+}
