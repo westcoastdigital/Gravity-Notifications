@@ -109,6 +109,9 @@ class GNT_SEND_EMAILS
         }
 
         $body = get_post_meta($id, '_gnt_message', true) ?? '';
+        if($body !== '') {
+            $body = do_shortcode($body); // Convert shortcodes in the body
+        }
 
         // Replace merge tags like {Label:1.3} or {Email:2}
         preg_match_all('/{([^:}]+):([\d.]+)}/', $body, $matches, PREG_SET_ORDER);
