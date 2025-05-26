@@ -24,39 +24,3 @@ define('GNT_FILE', __FILE__);
 
 
 include_once GNT_PATH . 'admin/init.php';
-$license_manager = new GNT_License_Manager();
-if ($license_manager->is_license_valid()) {
-    // License is valid, enable premium features
-    add_action('plugins_loaded', function () {
-        load_plugin_textdomain('gnt', false, dirname(plugin_basename(__FILE__)) . '/languages');
-    });
-
-    // Loop through all php files in the inc directory and include them
-    $includes = glob(GNT_PATH . 'inc/*.php');
-    foreach ($includes as $file) {
-        if (file_exists($file)) {
-            include_once $file;
-        }
-    }
-} else {
-    // show a notice to add a license key
-    add_action('admin_notices', function () {
-        echo '<div class="notice notice-error"><p>' . __('Gravity Notifications license key is invalid. Please enter a valid license key.', 'gnt') . '</p></div>';
-    });
-}
-
-function gnt_shortcodes_notice() {
-    $content = '<div>';
-    $content .= '<h2 style="padding: 0;">' . __('Available Shortcodes', 'gnt') . '</h2>';
-    $content .= '<ul>';
-    $content .= '<li><code>[gnt_site_name]</code> - ' . __('Displays the site name.', 'gnt') . '</li>';
-    $content .= '<li><code>[gnt_site_name link="false"]</code> - ' . __('Displays the site name without a link.', 'gnt') . '</li>';
-    $content .= '<li><code>[gnt_year]</code> - ' . __('Displays the current year.', 'gnt') . '</li>';
-    $content .= '<li><code>[gnt_current_date format="Y-m-d"]</code> - ' . __('Displays the current date in the specified format.', 'gnt') . '</li>';
-    $content .= '<li><code>[gnt_current_date]</code> - ' . __('Displays the current date in the default format.', 'gnt') . '</li>';
-    $content .= '</ul>';
-    $content .= '<p>' . __('You can use these shortcodes in your notifications to dynamically insert content.', 'gnt') . '</p>';
-    $content .= '</div>';
-
-    return $content;
-}

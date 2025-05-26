@@ -6,9 +6,11 @@ class GNT_License_Manager
 
     private $license_key_option = 'gnt_license_key';
     private $license_status_option = 'gnt_license_status';
+    private $domain;
 
     public function __construct()
     {
+        $this->domain = parse_url(home_url(), PHP_URL_HOST);
         add_filter('plugin_row_meta', array($this, 'add_license_row'), 10, 2);
         add_action('wp_ajax_gnt_validate_license', array($this, 'ajax_validate_license'));
         add_action('wp_ajax_gnt_deactivate_license', array($this, 'ajax_deactivate_license'));
@@ -33,6 +35,12 @@ class GNT_License_Manager
 
         $status_class = $license_status === 'valid' ? 'gnt-license-valid' : 'gnt-license-invalid';
         $status_text = $license_status === 'valid' ? __('Valid', 'gnt') : __('Invalid/Inactive', 'gnt');
+        // Check if domain is localhost or local IP and no license is required
+        if ($this->isLocalEnvironment($this->domain)) {
+            $status_class = 'gnt-license-valid';
+            $status_text = __('You appear to be working locally so no license is required for testing', 'gnt');
+        }
+
 
         // Show different buttons based on license status
         $buttons_html = '';
@@ -326,6 +334,21 @@ class GNT_License_Manager
      */
     public function is_license_valid()
     {
+        // Check if domain is localhost or local IP and return true so no license is required
+        if ($this->isLocalEnvironment($this->domain)) {
+            return true;
+        }
+
+
+        // get option for license key
+        $option = get_option($this->license_key_option, '');
+        if (empty($option)) {
+            return false; // No license key set
+        }
+        // Check if the license status is valid
+        if (get_option($this->license_status_option, 'inactive') === 'invalid') {
+            return false; // License is explicitly marked as invalid
+        }
         return get_option($this->license_status_option, 'inactive') === 'valid';
     }
 
@@ -336,7 +359,90 @@ class GNT_License_Manager
     {
         return get_option($this->license_key_option, '');
     }
+
+    public function isLocalEnvironment($domain)
+    {
+        // Remove port if present
+        $domain = explode(':', $domain)[0];
+
+        // Localhost variations
+        $localHosts = [
+            'localhost',
+            '127.0.0.1',
+            '::1',
+            '0.0.0.0'
+        ];
+
+        if (in_array($domain, $localHosts)) {
+            return true;
+        }
+
+        // Check if it's an IP address
+        if (filter_var($domain, FILTER_VALIDATE_IP)) {
+            // Check for private/reserved IP ranges
+            if (filter_var($domain, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                return true;
+            }
+        }
+
+        // Check for common local development patterns
+        $localPatterns = [
+            '/^.*\.local$/',           // .local domains
+            '/^.*\.localhost$/',       // .localhost domains
+            '/^.*\.test$/',            // .test domains
+            '/^.*\.dev$/',             // .dev domains (though less reliable now)
+            '/^192\.168\./',           // Private IP range
+            '/^10\./',                 // Private IP range
+            '/^172\.(1[6-9]|2[0-9]|3[0-1])\./' // Private IP range
+        ];
+
+        foreach ($localPatterns as $pattern) {
+            if (preg_match($pattern, $domain)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
 
 // Initialize the license manager
-new GNT_License_Manager();
+// new GNT_License_Manager();
+
+$license_manager = new GNT_License_Manager();
+if ($license_manager->is_license_valid()) {
+    // License is valid, enable premium features
+    add_action('plugins_loaded', function () {
+        load_plugin_textdomain('gnt', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    });
+
+    // Loop through all php files in the inc directory and include them
+    $includes = glob(GNT_PATH . 'inc/*.php');
+    foreach ($includes as $file) {
+        if (file_exists($file)) {
+            include_once $file;
+        }
+    }
+} else {
+    // show a notice to add a license key
+    add_action('admin_notices', function () {
+        echo '<div class="notice notice-error"><p>' . __('Gravity Notifications license key is invalid. Please enter a valid license key.', 'gnt') . '</p></div>';
+    });
+}
+
+function gnt_shortcodes_notice()
+{
+    $content = '<div>';
+    $content .= '<h2 style="padding: 0;">' . __('Available Shortcodes', 'gnt') . '</h2>';
+    $content .= '<ul>';
+    $content .= '<li><code>[gnt_site_name]</code> - ' . __('Displays the site name.', 'gnt') . '</li>';
+    $content .= '<li><code>[gnt_site_name link="false"]</code> - ' . __('Displays the site name without a link.', 'gnt') . '</li>';
+    $content .= '<li><code>[gnt_year]</code> - ' . __('Displays the current year.', 'gnt') . '</li>';
+    $content .= '<li><code>[gnt_current_date format="Y-m-d"]</code> - ' . __('Displays the current date in the specified format.', 'gnt') . '</li>';
+    $content .= '<li><code>[gnt_current_date]</code> - ' . __('Displays the current date in the default format.', 'gnt') . '</li>';
+    $content .= '</ul>';
+    $content .= '<p>' . __('You can use these shortcodes in your notifications to dynamically insert content.', 'gnt') . '</p>';
+    $content .= '</div>';
+
+    return $content;
+}
