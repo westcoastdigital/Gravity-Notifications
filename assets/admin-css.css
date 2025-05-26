@@ -169,3 +169,14 @@ small {
     max-height: 200px;
     overflow-y: auto;
 }
+
+.email-wrap .gnt-merge-tags {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.email-wrap .gnt-merge-tags h4 {
+    margin: 0;
+}

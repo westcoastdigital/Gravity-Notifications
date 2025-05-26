@@ -112,6 +112,9 @@ class GNT_CPT_FIELDS
         echo '<div class="gnt-to-email-field" style="display: ' . ($fields['to_email_type'] === 'field_id' ? 'block' : 'none') . ';">';
         echo '<p><label>Email Field ID:<br><input type="text" name="gnt_to_email_field_id" value="' . esc_attr($fields['to_email_field_id']) . '" class="widefat" placeholder="e.g., Email:2"></label></p>';
         echo '<small>' . __('Enter the Field ID from your Gravity Form that contains the email address. EG: Email:2 to use email field', 'gnt') . '</small>';
+        echo '<div class="email-wrap">';
+            echo $this->render_merge_tags($post->ID, 'gnt-email-tag', true);
+        echo '</div>';
         echo '</div>';
         echo '</div>';
 
@@ -171,13 +174,13 @@ class GNT_CPT_FIELDS
         ) . '</p>';
     }
 
-    private function render_merge_tags($post_id)
+    private function render_merge_tags($post_id, $class = 'gnt-merge-tag', $email_only = false)
     {
         $assigned_forms = get_post_meta($post_id, '_gnt_assigned_forms', true);
         $use_all_forms = get_post_meta($post_id, '_gnt_use_all_forms', true);
 
         if (!class_exists('GFAPI')) {
-            return '<p>Gravity Forms not available.</p>';
+            return '<p><em>Gravity Forms not available.</em></p>';
         }
 
         $forms_to_process = [];
@@ -197,26 +200,30 @@ class GNT_CPT_FIELDS
         }
 
         if (empty($forms_to_process)) {
-            return '<p>No forms assigned. Assign forms to see available merge tags.</p>';
+            return '<p><em>No forms assigned. Assign forms to see available merge tags.</em></p>';
         }
 
         $output = '<div class="gnt-merge-tags">';
 
         foreach ($forms_to_process as $form) {
             $output .= '<h4>Form: ' . esc_html($form['title']) . '</h4>';
-            $output .= '<div class="gnt-merge-tags-list">';
+            $output .= '<div class="gnt-merge-tag-list">';
 
             if (!empty($form['fields'])) {
                 foreach ($form['fields'] as $field) {
-                    $merge_tag = '{' . $field->label . ':' . $field->id . '}';
-                    $output .= '<span class="gnt-merge-tag" data-tag="' . esc_attr($merge_tag) . '">' . esc_html($merge_tag) . '</span>';
+                    if ($email_only && $field->type !== 'email') {
+                        continue;
+                    }
 
-                    // Add sub-fields for name, address fields etc.
-                    if ($field->type === 'name' && !empty($field->inputs)) {
+                    $merge_tag = '{' . $field->label . ':' . $field->id . '}';
+                    $output .= '<span class="' . $class . '">' . esc_html($merge_tag) . '</span>';
+
+                    // Add sub-fields (like name fields) only if not email_only
+                    if (!$email_only && $field->type === 'name' && !empty($field->inputs)) {
                         foreach ($field->inputs as $input) {
                             if (!isset($input['isHidden']) || !$input['isHidden']) {
                                 $sub_merge_tag = '{' . $field->label . ':' . $input['id'] . '}';
-                                $output .= '<span class="gnt-merge-tag gnt-sub-field" data-tag="' . esc_attr($sub_merge_tag) . '">' . esc_html($sub_merge_tag) . '</span>';
+                                $output .= '<span class="gnt-merge-tag">' . esc_html($sub_merge_tag) . '</span>';
                             }
                         }
                     }
@@ -230,6 +237,7 @@ class GNT_CPT_FIELDS
 
         return $output;
     }
+
 
     public function ajax_refresh_merge_tags()
     {
