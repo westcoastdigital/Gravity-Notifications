@@ -145,6 +145,24 @@ class GNT_CPT_FIELDS
             echo '<p><label>Subject:<br><input type="text" name="gnt_subject" value="' . esc_attr($fields['subject']) . '" class="widefat"></label></p>';
         echo '</section>';
 
+        // Message Field (wp_editor)
+        echo '<section class="gnt-meta-box">';
+            echo '<h4 style="margin: 0;">' . __('Custom Tags and Shortcodes', 'gnt') . '</h4>';
+            echo '<p style="margin: 0 0 5px 0;">' . __('You can use custom tags and shortcodes in the message body. These will be replaced with actual values when the notification is sent.', 'gnt') . '</p>';
+            echo '<div class="gnt-message-wrapper">';
+            echo '<div class="left">';
+            echo gnt_shortcodes_notice();
+            echo '</div>';
+            echo '<div class="right">';
+            echo '<h2 style="padding: 0;">' . __('Available Merge Tags', 'gnt') . '</h2>';
+            echo '<small>' . __('You can use a merge tag to to dynamically populate from form inputs. eg: {Name:1.3} would return the first name of a Name field', 'gnt') . '</small>';
+            echo $this->render_merge_tags($post->ID);
+
+            echo '</div>';
+            echo '</div>';
+        echo '</section>';
+
+
         // Use Global Header Field
         echo '<section class="gnt-meta-box">';
             echo '<p class="gnt-toggle-wrapper"><label>Use Global Header?<br>
@@ -160,25 +178,17 @@ class GNT_CPT_FIELDS
             </p>';
         echo '</section>';
 
-        // Message Field (wp_editor)
         echo '<section class="gnt-meta-box">';
-            echo '<h4 style="margin: 0;">' . __('Custom Tags and Shortcodes', 'gnt') . '</h4>';
-            echo '<p style="margin: 0 0 5px 0;">' . __('You can use custom tags and shortcodes in the message body. These will be replaced with actual values when the notification is sent.', 'gnt') . '</p>';
-            echo '<div class="gnt-message-wrapper">';
-            echo '<div class="left">';
-            echo gnt_shortcodes_notice();
+            echo '<div class="gnt-header-output" style="display: ' . ($fields['use_global_header'] ? 'block' : 'none') . ';">';
+                echo $this->render_header();
             echo '</div>';
-            echo '<div class="right">';
-            echo '<h2 style="padding: 0;">' . __('Available Merge Tags', 'gnt') . '</h2>';
-            echo '<small>' . __('You can use a merge tag to to dynamically populate from form inputs. eg: {Name:1.3} would return the first name of a Name field', 'gnt') . '</small>';
-            echo $this->render_merge_tags($post->ID);
-            echo '</div>';
-            echo '</div>';
-        echo '</section>';
 
-        echo '<section class="gnt-meta-box">';
             echo '<p><label>Message:<br>';
             wp_editor($fields['message'], 'gnt_message_' . $post->ID, ['textarea_name' => 'gnt_message', 'textarea_rows' => 10]);
+            
+            echo '<div class="gnt-footer-output" style="display: ' . ($fields['use_global_footer'] ? 'block' : 'none') . ';">';
+                echo $this->render_footer();
+            echo '</div>';
             echo '</label></p>';
         echo '</section>';
 
@@ -725,6 +735,26 @@ class GNT_CPT_FIELDS
                 }
             </style>
             <?php
+        }
+    }
+
+    public function render_header() {
+        $header = get_option('gnt_global_header_content', '');
+
+        if($header) {
+            echo '<div class="gnt-global-header">';
+            echo apply_filters('the_content', $header); // Use the_content filter to process shortcodes
+            echo '</div>';
+        }
+    }
+
+    public function render_footer() {
+        $footer = get_option('gnt_global_footer_content', '');
+
+        if($footer) {
+            echo '<div class="gnt-global-footer">';
+            echo apply_filters('the_content', $footer); // Use the_content filter to process shortcodes
+            echo '</div>';
         }
     }
 }

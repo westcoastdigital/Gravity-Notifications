@@ -376,6 +376,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+
+    toggleDisplayHeaderPreview();
+    toggleDisplayFooterPreview();
 });
 
 
@@ -493,4 +496,26 @@ function refreshEmailFieldDropdown() {
     .catch(error => {
         console.error('Error refreshing email fields:', error);
     });
+}
+
+function toggleDisplayHeaderPreview() {
+    const headerPreview = document.querySelector('.gnt-header-output');
+    const toggleButton = document.querySelector('input[name="gnt_use_global_header"]');
+    if (toggleButton && headerPreview) {
+        // listen for changes to the toggle button
+        toggleButton.addEventListener('change', function() {
+            headerPreview.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+}
+
+function toggleDisplayFooterPreview() {
+    const footerPreview = document.querySelector('.gnt-footer-output');
+    const toggleButton = document.querySelector('input[name="gnt_use_global_footer"]');
+    if (toggleButton && footerPreview) {
+        // listen for changes to the toggle button
+        toggleButton.addEventListener('change', function() {
+            footerPreview.style.display = this.checked ? 'block' : 'none';
+        });
+    }
 }
