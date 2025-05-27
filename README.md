@@ -27,6 +27,14 @@ Mangage notifications for Gravity Forms in one place so can assign to multiple f
 
 <details>
 
+<summary>Do I have to have a license to test?</summary>
+
+No, if you are using a local testing machine, we have included functionality to enable all settings, then once you go live you will need to add your license
+
+</details>
+
+<details>
+
 <summary>Does this override the core Gravity Forms notifications?</summary>
 
 No, these notifications will send as normal, so deactivate or delete the notifications you do not wish to send
