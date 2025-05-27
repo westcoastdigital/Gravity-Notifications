@@ -406,8 +406,17 @@ class GNT_License_Manager
     }
 }
 
-// Initialize the license manager
-// new GNT_License_Manager();
+function gnt_add_custom_plugin_links($links) {
+    // Custom links to add
+    $custom_links = [
+        '<a href="' . admin_url('admin.php?page=gnt_global_notifications') . '">' . __('Global Settings', 'gnt') . '</a>',
+        '<a href="' . admin_url('edit.php?post_type=gf-notifications') . '">' . __('Notifications', 'gnt') . '</a>',
+    ];
+
+    // Merge custom links with existing ones
+    return array_merge($custom_links, $links);
+}
+add_filter('plugin_action_links_gravity-notifications/gravity-notifications.php', 'gnt_add_custom_plugin_links');
 
 $license_manager = new GNT_License_Manager();
 if ($license_manager->is_license_valid()) {
