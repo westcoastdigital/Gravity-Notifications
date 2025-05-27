@@ -180,6 +180,7 @@ class GNT_CPT_FIELDS
 
         echo '<section class="gnt-meta-box">';
             echo '<div class="gnt-header-output" style="display: ' . ($fields['use_global_header'] ? 'block' : 'none') . ';">';
+                echo '<p>' . __('Header Preview', 'gnt') . ':</p>';
                 echo $this->render_header();
             echo '</div>';
 
@@ -187,6 +188,7 @@ class GNT_CPT_FIELDS
             wp_editor($fields['message'], 'gnt_message_' . $post->ID, ['textarea_name' => 'gnt_message', 'textarea_rows' => 10]);
             
             echo '<div class="gnt-footer-output" style="display: ' . ($fields['use_global_footer'] ? 'block' : 'none') . ';">';
+                echo '<p>' . __('Footer Preview', 'gnt') . ':</p>';
                 echo $this->render_footer();
             echo '</div>';
             echo '</label></p>';
