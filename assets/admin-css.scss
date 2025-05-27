@@ -304,13 +304,20 @@ small {
     }
 }
 
-.forms_page_gnt_global_notifications tr {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    margin-bottom: 20px;
-    display: grid;
+.forms_page_gnt_global_notifications {
+    .form-table tbody {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        tr {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            display: grid;
+        }
+    }
 }
 
 
@@ -327,5 +334,11 @@ small {
     .wp-core-ui .button.gnt-add-row,
     #gnt-publish-button-wrapper .button {
         max-width: 100%;
+    }
+
+    .forms_page_gnt_global_notifications {
+        .form-table tbody {
+            display: block;
+        }
     }
 }
