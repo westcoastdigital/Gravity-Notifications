@@ -15,6 +15,14 @@ Mangage notifications for Gravity Forms in one place so can assign to multiple f
 3. Configure global header and footer in Forms > Global Notifcations in the admin screen
 4. Configure each notification within Forms > Notifications
 
+## Screenshots
+#### Global Edit Screen
+![Global Edit Screen](assets/screenshots/Global_Edit_Screen.jpg)
+
+#### Notification Edit Screen
+![Notification Edit Screen](assets/screenshots/Notification_Edit_Screen.jpg)
+
+
 ## FAQ
 
 <details>
@@ -57,11 +65,24 @@ I use and recommend plugins by webaware:
 
 <details>
 
+<summary>Can I use shortcodes in notifications?</summary>
+
+Yes, you can use any shortcode in the Gloabl Notifications (header and footer) and the Notification Message.
+<br>
+We have included a few shortcodes to assist, like site name, year and date. These will appear in any of the WYSIWYG editors for your reference.
+
+</details>
+
+
+<details>
+
 <summary>Can I use field values in notifications?</summary>
 
-Yes, you can use form fields (merge tags) in the To Email and and also the Message.
+Yes, you can use form fields (merge tags) in the To Email and and also the Message, but not in header or footer of Global Notifications.
 <br>
-When you edit a field in the Gravity Form, in the top right you will see the Field ID (in a grey pill shaped element).
+There are buttons above the message that shows you the fields in all assigned forms that you can use. Use common fields so that they appear on all emails.
+<br>
+Alternatively, when you edit a field in the Gravity Form, in the top right you will see the Field ID (in a grey pill shaped element).
 <br>
 Then your merge tag will generally be label:id, so if you have an email field with label Email and an ID of 2, then the merge tag is Email:2.
 <br>
