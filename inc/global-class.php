@@ -18,8 +18,8 @@ class GNT_GLOBAL_SETTINGS
 
     public function create_settings()
     {
-        $page_title = __('Global Notifications', 'gnt');
-        $menu_title = __('Global Notifications', 'gnt');
+        $page_title = __('Notification Settings', 'gnt');
+        $menu_title = __('Notification Settings', 'gnt');
         $capability = 'manage_options';
         $slug = 'gnt_global_notifications';
         $callback = array($this, 'settings_content');
@@ -67,6 +67,20 @@ class GNT_GLOBAL_SETTINGS
     {
         $fields = array(
             array(
+                'label' => __('Set Max Width?', 'gnt'),
+                'id' => 'gnt_global_header_set_width',
+                'type' => 'toggle',
+                'section' => 'gnt_global_notifications_section',
+            ),
+            array(
+				'label' => __('Width', 'gnt'),
+				'id' => 'gnt_global_header_max_width',
+				'type' => 'suffix',
+                'suffix' => 'px',
+                'default' => 640,
+				'section' => 'gnt_global_notifications_section',
+			),
+            array(
                 'label' => __('Global Header', 'gnt'),
                 'id' => 'gnt_global_header_content',
                 'type' => 'wysiwyg',
@@ -95,6 +109,33 @@ class GNT_GLOBAL_SETTINGS
         switch ($field['type']) {
             case 'wysiwyg':
                 wp_editor($value, $field['id'], array('textarea_name' => $field['id']));
+                break;
+            case 'checkbox':
+                printf('<input %s id="%s" name="%s" type="checkbox" value="1">',
+                    $value === '1' ? 'checked' : '',
+                    $field['id'],
+                    $field['id']
+                );
+                break;
+            case 'toggle':
+                printf('<p class="gnt-toggle-wrapper"><label>%s<br><label class="gnt-toggle"><input %s id="%s" name="%s" type="checkbox" value="1"><span class="gnt-slider"></span></label></label></p>',
+                    $field['label'],
+                    $value === '1' ? 'checked' : '',
+                    $field['id'],
+                    $field['id']
+                );
+                break;
+            case 'suffix':
+                $suffix = isset($field['suffix']) ? $field['suffix'] : '';
+                $value = $value ? $value : $field['default'];
+                printf(
+                    '<div class="input-group suffix"><input name="%s" id="%s" type="number" placeholder="%s" value="%s" /><span class="input-group-addon ">%s</span></div>',
+                    $field['id'],
+                    $field['id'],
+                    $placeholder,
+                    $value,
+                    esc_html($suffix),
+                );
                 break;
             default:
                 printf(

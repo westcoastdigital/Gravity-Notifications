@@ -2,13 +2,13 @@ body {
     background: #f1f5f9;
 }
 
-.gnt-toggle-wrapper label{
+.gnt-toggle-wrapper label {
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
     -webkit-box-align: center;
-        -ms-flex-align: center;
-            align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
     gap: 10px;
 }
 
@@ -28,8 +28,10 @@ body {
 .gnt-slider {
     position: absolute;
     cursor: pointer;
-    top: 0; left: 0;
-    right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-color: #ccc;
     -webkit-transition: 0.4s;
     -o-transition: 0.4s;
@@ -57,8 +59,69 @@ body {
 
 .gnt-toggle input:checked + .gnt-slider:before {
     -webkit-transform: translateX(26px);
-        -ms-transform: translateX(26px);
-            transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+.suffix,
+.prefix {
+    input {
+        position: relative;
+        z-index: 2;
+        float: left;
+        width: 100%;
+        margin-bottom: 0;
+        display: table-cell;
+        padding: 6px 12px;
+        border: 1px solid #ccc;
+        margin: 0;
+    }
+
+    input {
+        border-radius: 4px 0px 0px 4px;
+    }
+}
+
+.input-group-addon {
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1;
+    color: #555;
+    text-align: center;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+    display: table-cell;
+}
+.suffix .input-group-addon {
+    border-left: 0;
+    border-radius: 0px 4px 4px 0px;
+}
+.prefix input {
+    border-radius: 0px 4px 4px 0px;
+}
+.prefix .input-group-addon {
+    border-right: 0;
+    border-radius: 4px 0px 0px 4px;
+}
+.presuffix input {
+    border-radius: 0px;
+}
+.input-group-addon.prefix {
+    border-radius: 4px 0px 0px 4px;
+    border-right: 0;
+}
+.input-group-addon.suffix {
+    border-radius: 0px 4px 4px 0px;
+    border-left: 0;
+}
+.input-group {
+    position: relative;
+    display: table;
+    border-collapse: separate;
 }
 
 .gnt-repeater-row {
@@ -96,8 +159,8 @@ body {
     display: flex;
     gap: 10px;
     -webkit-box-align: end;
-        -ms-flex-align: end;
-            align-items: end;
+    -ms-flex-align: end;
+    align-items: end;
     margin-bottom: 10px;
     padding: 10px;
     background: #fff;
@@ -124,8 +187,8 @@ body {
 .gnt-condition-operator,
 .gnt-condition-value {
     -webkit-box-flex: 1;
-        -ms-flex: 1;
-            flex: 1;
+    -ms-flex: 1;
+    flex: 1;
 }
 
 .gnt-condition-row label {
@@ -167,8 +230,8 @@ body {
     display: -ms-flexbox;
     display: flex;
     -webkit-box-align: center;
-        -ms-flex-align: center;
-            align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
     gap: 10px;
 }
 
@@ -193,7 +256,7 @@ small {
 .gnt-message-wrapper small {
     color: inherit;
     padding: 0;
-    background: none;;
+    background: none;
 }
 
 .gnt-message-wrapper .right {
@@ -206,10 +269,10 @@ small {
     display: -ms-flexbox;
     display: flex;
     -ms-flex-wrap: wrap;
-        flex-wrap: wrap;
+    flex-wrap: wrap;
     -webkit-box-align: center;
-        -ms-flex-align: center;
-            align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
     gap: 10px;
     margin-top: 10px;
 }
@@ -255,7 +318,7 @@ small {
         border-top-left-radius: 8px;
         border-top-right-radius: 8px;
     }
-    
+
     #major-publishing-actions {
         background: none;
         border: none;

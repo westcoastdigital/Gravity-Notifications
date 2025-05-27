@@ -98,6 +98,11 @@ class GNT_SEND_EMAILS
         $global_header = get_post_meta($id, '_gnt_use_global_header', true);
         $global_footer = get_post_meta($id, '_gnt_use_global_footer', true);
 
+        $set_width = get_post_meta($id, '_gnt_set_max_width', true);
+        $max_width = get_post_meta($id, '_gnt_max_width', true) ?? 620;
+
+        $content = '';
+
         $header = '';
         if ($global_header) {
             $header = get_option('gnt_global_header_content') ?? '';
@@ -130,8 +135,17 @@ class GNT_SEND_EMAILS
             $replacement = rgar($entry, $field_id) ?? '';  // Use rgar to get nested keys safely
             $body = str_replace($full_tag, $replacement, $body);
         }
+        
 
-        $content = $header . $body . $footer;
+        if($set_width) {
+            $content .= '<table style="max-width: ' . esc_attr($max_width) . 'px; margin: 0 auto; border-collapse: collapse; border-spacing: 0; padding: 0; width: auto;"><tbody><tr><td style="margin: 0; padding: 0; border: none; font-size: inherit; font-family: inherit; background: none;">';
+        }
+
+        $content .= $header . $body . $footer;
+
+        if($set_width) {
+            $content .= '</td></tr></tbody></table>';
+        }
 
         // Replace merge tags like {Name:1} with actual field values
         foreach ($entry as $key => $value) {
