@@ -16,6 +16,7 @@ class GNT_CPT_FIELDS
         add_action('wp_ajax_gnt_get_field_choices', [$this, 'ajax_get_field_choices']);
         add_action('admin_notices', [$this, 'maybe_show_errors']);
         add_filter('redirect_post_location', [$this, 'redirect_with_errors'], 10, 2);
+        add_action('admin_footer', [$this, 'disable_sort']);
     }
 
     public function register_meta_box()
@@ -53,14 +54,14 @@ class GNT_CPT_FIELDS
             'message'           => get_post_meta($post->ID, '_gnt_message', true),
         ];
 
-        echo '<div class="gnt-blue-wrapper">';
-        echo '<p class="gnt-toggle-wrapper"><label>Use on all forms?<br>
-            <label class="gnt-toggle">
-                <input type="checkbox" name="gnt_use_all_forms" value="1" ' . checked($fields['use_all_forms'], 1, false) . '>
-                <span class="gnt-slider"></span>
-            </label>
-        </label></p>';
-        echo '</div>';
+        echo '<section class="gnt-meta-box">';
+            echo '<p class="gnt-toggle-wrapper"><label>Use on all forms?<br>
+                <label class="gnt-toggle">
+                    <input type="checkbox" name="gnt_use_all_forms" value="1" ' . checked($fields['use_all_forms'], 1, false) . '>
+                    <span class="gnt-slider"></span>
+                </label>
+            </label></p>';
+        echo '</section>';
 
         // Get list of Gravity Forms
         if (class_exists('GFAPI')) {
@@ -70,12 +71,14 @@ class GNT_CPT_FIELDS
         }
 
         if (empty($forms)) {
-            echo '<p>No Gravity Forms found. Please install or activate Gravity Forms.</p>';
+            echo '<section class="gnt-meta-box">';
+                echo '<p>No Gravity Forms found. Please install or activate Gravity Forms.</p>';
+            echo '</section>';
         } else {
             $assigned_forms = get_post_meta($post->ID, '_gnt_assigned_forms', true);
             if (!is_array($assigned_forms)) $assigned_forms = [];
 
-            echo '<div class="gnt-form-assignment">';
+            echo '<div class="gnt-form-assignment">';echo '<section class="gnt-meta-box">';
             echo '<h4>Assign to Forms</h4>';
             echo '<div class="gnt-repeater">';
 
@@ -93,80 +96,94 @@ class GNT_CPT_FIELDS
             echo $this->render_repeater_row([], $forms, true, 'TEMPLATE_INDEX');
 
             echo '<button type="button" class="button gnt-add-row">Add Form</button>';
-            echo '</div></div>';
+            echo '</div>';
+            echo '</section>';
+            echo '</div>';
         }
 
         // To Email Type Field (Radio)
-        echo '<div class="gnt-to-email-wrapper">';
-        echo '<h4>To Email Configuration</h4>';
-        echo '<p><label>How would you like to set the recipient email?</label></p>';
-        echo '<div class="gnt-to-email-type">';
-        echo '<label><input type="radio" name="gnt_to_email_type" value="enter_email" ' . checked($fields['to_email_type'], 'enter_email', false) . '> Enter Email Address</label><br>';
-        echo '<label><input type="radio" name="gnt_to_email_type" value="field_id" ' . checked($fields['to_email_type'], 'field_id', false) . '> Use Form Field ID</label>';
-        echo '</div>';
+        echo '<section class="gnt-meta-box">';
+            echo '<div class="gnt-to-email-wrapper">';
+            echo '<h4>To Email Configuration</h4>';
+            echo '<p><label>How would you like to set the recipient email?</label></p>';
+            echo '<div class="gnt-to-email-type">';
+            echo '<label><input type="radio" name="gnt_to_email_type" value="enter_email" ' . checked($fields['to_email_type'], 'enter_email', false) . '> Enter Email Address</label><br>';
+            echo '<label><input type="radio" name="gnt_to_email_type" value="field_id" ' . checked($fields['to_email_type'], 'field_id', false) . '> Use Form Field ID</label>';
+            echo '</div>';
 
-        // To Email Field (conditional)
-        echo '<div class="gnt-to-email-enter" style="display: ' . ($fields['to_email_type'] === 'enter_email' ? 'block' : 'none') . ';">';
-        echo '<p><label>To Email:<br><input type="email" name="gnt_to_email" value="' . esc_attr($fields['to_email']) . '" class="widefat"></label></p>';
-        echo '</div>';
+            // To Email Field (conditional)
+            echo '<div class="gnt-to-email-enter" style="display: ' . ($fields['to_email_type'] === 'enter_email' ? 'block' : 'none') . ';">';
+            echo '<p><label>To Email:<br><input type="email" name="gnt_to_email" value="' . esc_attr($fields['to_email']) . '" class="widefat"></label></p>';
+            echo '</div>';
 
-        // To Email Field ID (conditional)
-        echo '<div class="gnt-to-email-field" style="display: ' . ($fields['to_email_type'] === 'field_id' ? 'block' : 'none') . ';">';
-        echo '<p><label>Email Field ID:<br><input type="text" name="gnt_to_email_field_id" value="' . esc_attr($fields['to_email_field_id']) . '" class="widefat" placeholder="e.g., Email:2"></label></p>';
-        echo '<small>' . __('Enter the Field ID from your Gravity Form that contains the email address. EG: Email:2 to use email field', 'gnt') . '</small>';
-        echo '<div class="email-wrap">';
-            echo $this->render_merge_tags($post->ID, 'gnt-email-tag', true);
-        echo '</div>';
-        echo '</div>';
-        echo '</div>';
+            // To Email Field ID (conditional)
+            echo '<div class="gnt-to-email-field" style="display: ' . ($fields['to_email_type'] === 'field_id' ? 'block' : 'none') . ';">';
+            echo '<p><label>Email Field ID:<br><input type="text" name="gnt_to_email_field_id" value="' . esc_attr($fields['to_email_field_id']) . '" class="widefat" placeholder="e.g., Email:2"></label></p>';
+            echo '<small>' . __('Enter the Field ID from your Gravity Form that contains the email address. EG: Email:2 to use email field', 'gnt') . '</small>';
+            echo '<div class="email-wrap">';
+                echo $this->render_merge_tags($post->ID, 'gnt-email-tag', true);
+            echo '</div>';
+            echo '</div>';
+            echo '</div>';
+        echo '</section>';
 
-        // From Name Field
-        echo '<p><label>From Name:<br><input type="text" name="gnt_from_name" value="' . esc_attr($fields['from_name']) . '" class="widefat"></label></p>';
+        echo '<section class="gnt-meta-box">';
+            echo '<h4>Other Email Settings</h4>';
+            // From Name Field
+            echo '<p><label>From Name:<br><input type="text" name="gnt_from_name" value="' . esc_attr($fields['from_name']) . '" class="widefat"></label></p>';
 
-        // From Email Field
-        echo '<p><label>From Email:<br><input type="email" name="gnt_from_email" value="' . esc_attr($fields['from_email']) . '" class="widefat"></label></p>';
+            // From Email Field
+            echo '<p><label>From Email:<br><input type="email" name="gnt_from_email" value="' . esc_attr($fields['from_email']) . '" class="widefat"></label></p>';
 
-        // Reply To Field
-        echo '<p><label>Reply To:<br><input type="email" name="gnt_reply_to" value="' . esc_attr($fields['reply_to']) . '" class="widefat"></label></p>';
+            // Reply To Field
+            echo '<p><label>Reply To:<br><input type="email" name="gnt_reply_to" value="' . esc_attr($fields['reply_to']) . '" class="widefat"></label></p>';
 
-        // BCC Field
-        echo '<p><label>BCC:<br><input type="email" name="gnt_bcc" value="' . esc_attr($fields['bcc']) . '" class="widefat"></label></p>';
+            // BCC Field
+            echo '<p><label>BCC:<br><input type="email" name="gnt_bcc" value="' . esc_attr($fields['bcc']) . '" class="widefat"></label></p>';
 
-        // Subject Field
-        echo '<p><label>Subject:<br><input type="text" name="gnt_subject" value="' . esc_attr($fields['subject']) . '" class="widefat"></label></p>';
+            // Subject Field
+            echo '<p><label>Subject:<br><input type="text" name="gnt_subject" value="' . esc_attr($fields['subject']) . '" class="widefat"></label></p>';
+        echo '</section>';
 
         // Use Global Header Field
-        echo '<div class="gnt-blue-wrapper">';
-        echo '<p class="gnt-toggle-wrapper"><label>Use Global Header?<br>
-            <label class="gnt-toggle">
-                <input type="checkbox" name="gnt_use_global_header" value="1" ' . checked($fields['use_global_header'], 1, false) . '>
-                <span class="gnt-slider"></span>
+        echo '<section class="gnt-meta-box">';
+            echo '<p class="gnt-toggle-wrapper"><label>Use Global Header?<br>
+                <label class="gnt-toggle">
+                    <input type="checkbox" name="gnt_use_global_header" value="1" ' . checked($fields['use_global_header'], 1, false) . '>
+                    <span class="gnt-slider"></span>
+                </label>
             </label>
-        </label>
-        ' . sprintf(
-            __('This will use the global header set in the <a href="%s" target="_blank" rel="noopener noreferrer">settings page</a>, if not set it just sends the body below without the global header.', 'gnt'),
-            esc_url(admin_url('admin.php?page=gnt_global_notifications'))
-        ) . '
-        </p>';
-        echo '</div>';
+            ' . sprintf(
+                __('This will use the global header set in the <a href="%s" target="_blank" rel="noopener noreferrer">settings page</a>, if not set it just sends the body below without the global header.', 'gnt'),
+                esc_url(admin_url('admin.php?page=gnt_global_notifications'))
+            ) . '
+            </p>';
+        echo '</section>';
 
         // Message Field (wp_editor)
-        echo '<div class="gnt-message-wrapper">';
-        echo '<div class="left">';
-        echo gnt_shortcodes_notice();
-        echo '</div>';
-        echo '<div class="right">';
-        echo '<h2 style="padding: 0;">' . __('Available Merge Tags', 'gnt') . '</h2>';
-        echo '<small>' . __('You can use a merge tag to to dynamically populate from form inputs. eg: {Name:1.3} would return the first name of a Name field', 'gnt') . '</small>';
-        echo $this->render_merge_tags($post->ID);
-        echo '</div>';
-        echo '</div>';
-        echo '<p><label>Message:<br>';
-        wp_editor($fields['message'], 'gnt_message_' . $post->ID, ['textarea_name' => 'gnt_message', 'textarea_rows' => 10]);
-        echo '</label></p>';
+        echo '<section class="gnt-meta-box">';
+            echo '<h4 style="margin: 0;">' . __('Custom Tags and Shortcodes', 'gnt') . '</h4>';
+            echo '<p style="margin: 0 0 5px 0;">' . __('You can use custom tags and shortcodes in the message body. These will be replaced with actual values when the notification is sent.', 'gnt') . '</p>';
+            echo '<div class="gnt-message-wrapper">';
+            echo '<div class="left">';
+            echo gnt_shortcodes_notice();
+            echo '</div>';
+            echo '<div class="right">';
+            echo '<h2 style="padding: 0;">' . __('Available Merge Tags', 'gnt') . '</h2>';
+            echo '<small>' . __('You can use a merge tag to to dynamically populate from form inputs. eg: {Name:1.3} would return the first name of a Name field', 'gnt') . '</small>';
+            echo $this->render_merge_tags($post->ID);
+            echo '</div>';
+            echo '</div>';
+        echo '</section>';
+
+        echo '<section class="gnt-meta-box">';
+            echo '<p><label>Message:<br>';
+            wp_editor($fields['message'], 'gnt_message_' . $post->ID, ['textarea_name' => 'gnt_message', 'textarea_rows' => 10]);
+            echo '</label></p>';
+        echo '</section>';
 
         // Use Global Footer Field
-        echo '<div class="gnt-blue-wrapper">';
+        echo '<section class="gnt-meta-box">';
         echo '<p class="gnt-toggle-wrapper"><label>Use Global Footer?<br>
             <label class="gnt-toggle">
                 <input type="checkbox" name="gnt_use_global_footer" value="1" ' . checked($fields['use_global_footer'], 1, false) . '>
@@ -177,7 +194,8 @@ class GNT_CPT_FIELDS
             __('This will use the global footer set in the <a href="%s" target="_blank" rel="noopener noreferrer">settings page</a>, if not set it just sends the body above without the global footer.', 'gnt'),
             esc_url(admin_url('admin.php?page=gnt_global_notifications'))
         ) . '</p>';
-        echo '</div>';
+        echo '</section>';
+
     }
 
     private function render_merge_tags($post_id, $class = 'gnt-merge-tag', $email_only = false)
@@ -270,8 +288,10 @@ class GNT_CPT_FIELDS
             $gnt_description = esc_textarea(get_post_meta($post->ID, 'gnt_description', true));
 
             // Output the textarea for the gnt_description field
-            echo '<label for="gnt_description"><h2 style="padding: 0;margin:5px 0;">' . __('Description', 'gnt') . ':</h2></label>';
+            echo '<label for="gnt_description"><h2 style="padding: 0;margin:20px 0 5px 0;">' . __('Description', 'gnt') . ':</h2></label>';
+            echo '<section class="gnt-meta-box">';
             echo '<textarea name="gnt_description" id="gnt_description" placeholder="Description" rows="3" style="width: 100%;">' . $gnt_description . '</textarea>';
+            echo '</section>';
         }
     }
 
@@ -679,6 +699,32 @@ class GNT_CPT_FIELDS
             }
             echo '</ul></div>';
             delete_transient("gnt_notification_errors_{$post->ID}");
+        }
+    }
+
+    public function disable_sort() {
+        global $post;
+        if ($post && $post->post_type === 'gf-notifications') {
+            ?>
+            <script>
+                jQuery(document).ready(function ($) {
+                    const box = $('#gf_notification_settings');
+
+                    // Remove toggle handle (click-to-collapse)
+                    box.removeClass('postbox'); // remove class that enables toggle
+                    box.addClass('no-toggle');  // optional custom class if you want to style it
+
+                    // Remove click event on title bar
+                    box.find('.hndle, .handlediv').off('click');
+                    box.find('.handlediv').remove(); // optionally remove the arrow icon
+                });
+            </script>
+            <style>
+                .no-toggle .hndle {
+                    cursor: default;
+                }
+            </style>
+            <?php
         }
     }
 }

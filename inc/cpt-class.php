@@ -82,7 +82,7 @@ class GNT_CPT
     public function enqueue_scripts()
     {
         $screen = get_current_screen();
-        if ($screen->post_type === 'gf-notifications') {
+        if ($screen->id === 'gf-notifications' || $screen->id === 'forms_page_gnt_global_notifications') {
             wp_enqueue_style('gf-notifications', GNT_URL . 'assets/admin-css.css', array(), GNT_VERSION);
             wp_enqueue_script('gf-notifications-admin', GNT_URL . 'assets/admin-js.js', array('jquery'), GNT_VERSION, true);
         }

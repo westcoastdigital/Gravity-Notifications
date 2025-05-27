@@ -353,6 +353,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize merge tag clicks
     initializeMergeTagClicks();
+    
+    // Clone the existing Publish/Update button
+    const originalButton = document.querySelector('#publish');
+
+    if (originalButton) {
+        const clone = originalButton.cloneNode(true);
+        clone.id = 'publish-bottom';
+        clone.innerText = originalButton.innerText;
+
+        // Insert it below the custom fields box
+        const target = document.querySelector('#gf_notification_settings'); // Replace with your actual custom fields container ID
+        if (target) {
+            const wrapper = document.createElement('div');
+            wrapper.id = 'gnt-publish-button-wrapper';
+            wrapper.appendChild(clone);
+            target.parentNode.insertBefore(wrapper, target.nextSibling);
+
+            // Ensure both buttons submit the form
+            clone.addEventListener('click', function () {
+                originalButton.click();
+            });
+        }
+    }
 });
 
 

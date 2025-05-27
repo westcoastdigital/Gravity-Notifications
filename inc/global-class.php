@@ -39,7 +39,9 @@ class GNT_GLOBAL_SETTINGS
         <div class="wrap">
             <h1><?= __('Global Notifications', 'gnt') ?></h1>
             <?php settings_errors(); ?>
+            <section class="gnt-meta-box">
             <?= gnt_shortcodes_notice() ?>
+            </section>
             <form method="POST" action="options.php">
                 <?php
                 settings_fields('gnt_global_notifications');

@@ -441,7 +441,7 @@ function gnt_shortcodes_notice()
     $content .= '<li><code>[gnt_current_date format="Y-m-d"]</code> - ' . __('Displays the current date in the specified format.', 'gnt') . '</li>';
     $content .= '<li><code>[gnt_current_date]</code> - ' . __('Displays the current date in the default format.', 'gnt') . '</li>';
     $content .= '</ul>';
-    $content .= '<p>' . __('You can use these shortcodes in your notifications to dynamically insert content.', 'gnt') . '</p>';
+    $content .= '<p>' . __('You can use these shortcodes, or any others, in your notifications to dynamically insert content.', 'gnt') . '</p>';
     $content .= '</div>';
 
     return $content;
