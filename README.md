@@ -12,7 +12,7 @@ Mangage notifications for Gravity Forms in one place so can assign to multiple f
 
 1. Upload the zip file to your WordPress plugins folder
 2. Activate plugin and add license within the plugin screen
-3. Configure global header and footer in Forms > Global Notifcations in the admin screen
+3. Configure max width, global header and footer in Forms >Notifcation Settings in the admin screen
 4. Configure each notification within Forms > Notifications
 
 ## Screenshots
@@ -46,6 +46,15 @@ No, these notifications will send as normal, so deactivate or delete the notific
 <summary>Can I use conditional logic for wich email to send the notification to?</summary>
 
 No, At this stage these notifications do not support email routing like the default Gravity Forms notifications.
+
+</details>
+
+<details>
+
+<summary>What does Set a Max Width do?</summary>
+
+If you turn this setting on and then set the width, it will wrap your entire email in a table with the max width and certrally aligned.<br>
+This is specifically useful for ensuring displays on mobiles without overflow;
 
 </details>
 
@@ -106,3 +115,21 @@ For example, if you have a Name field with an ID of 1, then the fields would be 
 | Suffix | 1.4 | Name:1.4 |
 
 </details>
+
+### Changelog
+**1.5.0** Update<br>
+* Added max width settings and renamed Global Notifications to Notification Settings
+
+**1.4.0** Update<br>
+* Updated styles
+* Added Header and Footer previews to messages
+
+**1.3.0** Update<br>
+* Added merge tags as buttons for assigned forms
+* Added shortcode support and custom shortcodes
+
+**1.2.0** Update<br>
+* Added merge tag support to message
+
+**1.1.0** Update<br>
+* Added Licensing
