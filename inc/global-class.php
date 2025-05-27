@@ -13,6 +13,7 @@ class GNT_GLOBAL_SETTINGS
         add_action('admin_menu', array($this, 'create_settings'), 100);
         add_action('admin_init', array($this, 'setup_sections'));
         add_action('admin_init', array($this, 'setup_fields'));
+        add_action('admin_head', array($this, 'add_custom_button_next_to_add_new'));
     }
 
     public function create_settings()
@@ -37,7 +38,12 @@ class GNT_GLOBAL_SETTINGS
     public function settings_content()
     { ?>
         <div class="wrap">
-            <h1><?= __('Global Notifications', 'gnt') ?></h1>
+            <h1>
+                <?= __('Global Notifications', 'gnt') ?>
+                <a href="<?= admin_url('edit.php?post_type=gf-notifications') ?>" class="page-title-action" style="margin-left: 10px;">
+                    <?= __('Notifications', 'gnt') ?>
+                </a>
+            </h1>
             <?php settings_errors(); ?>
             <section class="gnt-meta-box">
             <?= gnt_shortcodes_notice() ?>
@@ -104,6 +110,33 @@ class GNT_GLOBAL_SETTINGS
                 printf('<p class="description">%s </p>', $desc);
             }
         }
+    }
+
+    public function add_custom_button_next_to_add_new() {
+        $screen = get_current_screen();
+
+        if ($screen->post_type !== 'gf-notifications' || $screen->base !== 'edit') {
+            return;
+        }
+
+        $btn_text = __('Global Settings', 'gnt'); // Button Text
+        $btn_link = admin_url('admin.php?page=gnt_global_notifications'); // Button Link
+        ?>
+        <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', function () {
+                const addNewButton = document.querySelector('.page-title-action');
+
+                if (addNewButton) {
+                    const customButton = document.createElement('a');
+                    customButton.href = "<?php echo esc_url($btn_link); ?>";;
+                    customButton.className = 'page-title-action';
+                    customButton.textContent = "<?php echo esc_js($btn_text); ?>";
+
+                    addNewButton.after(customButton); // Inserts after the "Add New" button
+                }
+            });
+        </script>
+        <?php
     }
 }
 
