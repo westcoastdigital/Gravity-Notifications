@@ -286,6 +286,26 @@ small {
   margin-bottom: 20px;
   display: grid;
 }
+.forms_page_gnt_global_notifications .submit {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0;
+  padding: 0;
+}
+.forms_page_gnt_global_notifications .submit #submit {
+  background: #007cba;
+  border-color: #007cba;
+  box-shadow: none;
+  color: #fff;
+  width: 100%;
+  max-width: 300px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-radius: 8px;
+}
+.forms_page_gnt_global_notifications .submit #submit:hover {
+  background-color: #009eed;
+}
 
 @media screen and (max-width: 782px) {
   .gnt-message-wrapper {
@@ -301,5 +321,9 @@ small {
   }
   .forms_page_gnt_global_notifications .form-table tbody {
     display: block;
+  }
+  .forms_page_gnt_global_notifications .submit #submit {
+    width: 100%;
+    max-width: none;
   }
 }/*# sourceMappingURL=admin-css.css.map */

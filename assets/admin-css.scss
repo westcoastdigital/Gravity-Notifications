@@ -318,6 +318,29 @@ small {
             display: grid;
         }
     }
+
+    .submit {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0;
+        padding: 0;
+
+        #submit {
+            background: #007cba;
+            border-color: #007cba;
+            box-shadow: none;
+            color: #fff;
+            width: 100%;
+            max-width: 300px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            border-radius: 8px;
+
+            &:hover {
+                background-color: #009eed;
+            }
+        }
+    }
 }
 
 
@@ -340,5 +363,10 @@ small {
         .form-table tbody {
             display: block;
         }
+    }
+
+    .forms_page_gnt_global_notifications .submit #submit {
+        width: 100%;
+        max-width: none;
     }
 }
