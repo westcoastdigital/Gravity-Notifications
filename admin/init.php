@@ -370,7 +370,7 @@ class GNT_License_Manager
             'localhost',
             '127.0.0.1',
             '::1',
-            '0.0.0.0'
+            '0.0.0.0',
         ];
 
         if (in_array($domain, $localHosts)) {
@@ -393,7 +393,8 @@ class GNT_License_Manager
             '/^.*\.dev$/',             // .dev domains (though less reliable now)
             '/^192\.168\./',           // Private IP range
             '/^10\./',                 // Private IP range
-            '/^172\.(1[6-9]|2[0-9]|3[0-1])\./' // Private IP range
+            '/^172\.(1[6-9]|2[0-9]|3[0-1])\./' // Private IP range,
+            '/^10\.176\.28\.106$/',     // Specific local IP
         ];
 
         foreach ($localPatterns as $pattern) {
