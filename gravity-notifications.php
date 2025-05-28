@@ -3,7 +3,7 @@
 Plugin Name:  Gravity Notifications
 Plugin URI:   https://jonmather.au
 Description:  Mangage notifications for Gravity Forms in one place so can assign to multiple forms.
-Version:      1.5.0
+Version:      1.5.1
 Author:       Jon Mather
 Author URI:   https://jonmather.au
 License:      GPL v2 or later

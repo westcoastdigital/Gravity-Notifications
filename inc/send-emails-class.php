@@ -98,25 +98,34 @@ class GNT_SEND_EMAILS
         $global_header = get_post_meta($id, '_gnt_use_global_header', true);
         $global_footer = get_post_meta($id, '_gnt_use_global_footer', true);
 
-        $set_width = get_post_meta($id, '_gnt_set_max_width', true);
-        $max_width = get_post_meta($id, '_gnt_max_width', true) ?? 620;
-
-        $content = '';
+        $max_width = get_option('gnt_global_header_max_width', 640);
+        $set_width = get_option('gnt_global_header_set_width', false);
 
         $header = '';
-        if ($global_header) {
-            $header = get_option('gnt_global_header_content') ?? '';
+
+        if($set_width) {
+            $header .= '<table id="gnt-width-wraper" style="width: ' . esc_attr($max_width) . 'px; margin: 0 auto; border-collapse: collapse; border-spacing: 0; padding: 0;"><tbody><tr><td style="margin: 0; padding: 0; border: none; font-size: inherit; font-family: inherit; background: none;">';
         }
+
+        if ($global_header) {
+            $header .= get_option('gnt_global_header_content') ?? '';
+        }
+
         if($header !== '') {
             $header = do_shortcode($header); // Convert shortcodes in the header
         }
 
         $footer = '';
+
         if ($global_footer) {
-            $footer = get_option('gnt_global_footer_content') ?? '';
+            $footer .= get_option('gnt_global_footer_content') ?? '';
         }
         if($footer !== '') {
             $footer = do_shortcode($footer); // Convert shortcodes in the footer
+        }
+
+        if($set_width) {
+            $footer .= '</td></tr></tbody></table>';
         }
 
         $body = get_post_meta($id, '_gnt_message', true) ?? '';
@@ -137,15 +146,7 @@ class GNT_SEND_EMAILS
         }
         
 
-        if($set_width) {
-            $content .= '<table style="max-width: ' . esc_attr($max_width) . 'px; margin: 0 auto; border-collapse: collapse; border-spacing: 0; padding: 0; width: auto;"><tbody><tr><td style="margin: 0; padding: 0; border: none; font-size: inherit; font-family: inherit; background: none;">';
-        }
-
-        $content .= $header . $body . $footer;
-
-        if($set_width) {
-            $content .= '</td></tr></tbody></table>';
-        }
+        $content = $header . $body . $footer;
 
         // Replace merge tags like {Name:1} with actual field values
         foreach ($entry as $key => $value) {

@@ -117,6 +117,10 @@ For example, if you have a Name field with an ID of 1, then the fields would be 
 </details>
 
 ### Changelog
+**1.5.1** Bug Fix<br>
+* Fix issue with email when max width set email content being repeated
+
+### Changelog
 **1.5.0** Update<br>
 * Added max width settings and renamed Global Notifications to Notification Settings
 

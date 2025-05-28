@@ -162,7 +162,6 @@ class GNT_CPT_FIELDS
             echo '</div>';
         echo '</section>';
 
-
         // Use Global Header Field
         echo '<section class="gnt-meta-box">';
             echo '<p class="gnt-toggle-wrapper"><label>Use Global Header?<br>
@@ -179,6 +178,13 @@ class GNT_CPT_FIELDS
         echo '</section>';
 
         echo '<section class="gnt-meta-box">';
+            // Is the max width set?
+            $max_width = get_option('gnt_global_header_max_width', 640);
+            $set_width = get_option('gnt_global_header_set_width', false);
+            if($set_width) {
+                echo '<p class="led-box"><span class="led-green"></span><i>' . __('The email has been set to a max width of ', 'gnt') . $max_width . __('px.', 'gnt') . '</i></p>';
+            }
+            // Header Preview
             echo '<div class="gnt-header-output" style="display: ' . ($fields['use_global_header'] ? 'block' : 'none') . ';">';
                 echo '<p>' . __('Header Preview', 'gnt') . ':</p>';
                 echo $this->render_header();
