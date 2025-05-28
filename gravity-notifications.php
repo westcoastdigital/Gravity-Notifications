@@ -24,8 +24,3 @@ define('GNT_FILE', __FILE__);
 
 
 include_once GNT_PATH . 'admin/init.php';
-
-
-	$hostname = gethostname();
-$server_ip = gethostbyname($hostname);
-	var_dump($server_ip);

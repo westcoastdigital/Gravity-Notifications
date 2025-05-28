@@ -1,6 +1,4 @@
 <?php
-// Add this to your main plugin file or create a new file in your inc/ directory
-
 class GNT_License_Manager
 {
 
@@ -386,16 +384,17 @@ class GNT_License_Manager
         }
 
         // Check for common local development patterns
-        $localPatterns = [
+       $localPatterns = [
             '/^.*\.local$/',           // .local domains
             '/^.*\.localhost$/',       // .localhost domains
             '/^.*\.test$/',            // .test domains
             '/^.*\.dev$/',             // .dev domains (though less reliable now)
             '/^192\.168\./',           // Private IP range
             '/^10\./',                 // Private IP range
-            '/^172\.(1[6-9]|2[0-9]|3[0-1])\./' // Private IP range,
-            '/^10\.176\.28\.106$/',     // Specific local IP
+            '/^172\.(1[6-9]|2[0-9]|3[0-1])\./', // Private IP range
+            '/^10\.176\.28\.106$/'     // Specific local IP
         ];
+
 
         foreach ($localPatterns as $pattern) {
             if (preg_match($pattern, $domain)) {
