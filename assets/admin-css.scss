@@ -71,23 +71,32 @@ body {
     .led-green {
         width: 14px;
         height: 14px;
-        background-color: #ABFF00;
+        background-color: #abff00;
         border-radius: 50%;
-        box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 5px, #89FF00 0 2px 7px;
+        box-shadow:
+            rgba(0, 0, 0, 0.2) 0 -1px 7px 1px,
+            inset #304701 0 -1px 5px,
+            #89ff00 0 2px 7px;
     }
     .led-yellow {
         width: 14px;
         height: 14px;
-        background-color: #FF0;
+        background-color: #ff0;
         border-radius: 50%;
-        box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #808002 0 -1px 5px, #FF0 0 2px 7px;
+        box-shadow:
+            rgba(0, 0, 0, 0.2) 0 -1px 7px 1px,
+            inset #808002 0 -1px 5px,
+            #ff0 0 2px 7px;
     }
     .led-red {
         width: 14px;
         height: 14px;
-        background-color: #F00;
+        background-color: #f00;
         border-radius: 50%;
-        box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 5px, #F00 0 2px 7px;
+        box-shadow:
+            rgba(0, 0, 0, 0.2) 0 -1px 7px 1px,
+            inset #441313 0 -1px 5px,
+            #f00 0 2px 7px;
     }
 }
 
@@ -261,6 +270,16 @@ body {
     -ms-flex-align: center;
     align-items: center;
     gap: 10px;
+}
+
+.gnt-email-tag {
+    cursor: pointer;
+    padding: 2px 6px;
+    margin: 2px;
+    background-color: rgb(240, 240, 241);
+    border: 1px solid rgb(195, 196, 199);
+    border-radius: 3px;
+    display: inline-block;
 }
 
 small {

@@ -379,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toggleDisplayHeaderPreview();
     toggleDisplayFooterPreview();
+    clickOnEmailTag();
 });
 
 
@@ -520,3 +521,17 @@ function toggleDisplayFooterPreview() {
     }
 }
 
+function clickOnEmailTag() {
+    const emailTags = document.querySelectorAll('.gnt-email-tag');
+    if(!emailTags.length) return;
+    const emailFieldSelect = document.querySelector('input[name="gnt_to_email_field_id"]');
+    if (!emailFieldSelect) return;
+    emailTags.forEach(tag => {
+        tag.addEventListener('click', function() {
+            // get the text of span
+            const tagText = this.textContent.trim();
+            // set the value of input to the text
+            emailFieldSelect.value = tagText;
+        });
+    });
+}

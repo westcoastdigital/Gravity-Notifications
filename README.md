@@ -117,6 +117,10 @@ For example, if you have a Name field with an ID of 1, then the fields would be 
 </details>
 
 ### Changelog
+**1.5.2** Bug Fix<br>
+* Fix issue when curly braces are added to email field ID
+* Make email field id tags buttons to click and populate the email field input
+
 **1.5.1** Bug Fix<br>
 * Fix issue with email when max width set email content being repeated
 
