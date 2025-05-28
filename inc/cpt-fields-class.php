@@ -191,7 +191,7 @@ class GNT_CPT_FIELDS
             echo '</div>';
 
             echo '<p><label>Message:<br>';
-            wp_editor($fields['message'], 'gnt_message_' . $post->ID, ['textarea_name' => 'gnt_message', 'textarea_rows' => 10]);
+            wp_editor($fields['message'], 'gnt_message_' . $post->ID, ['textarea_name' => 'gnt_message', 'textarea_rows' => 40]);
             
             echo '<div class="gnt-footer-output" style="display: ' . ($fields['use_global_footer'] ? 'block' : 'none') . ';">';
                 echo '<p>' . __('Footer Preview', 'gnt') . ':</p>';
