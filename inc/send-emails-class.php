@@ -81,7 +81,8 @@ class GNT_SEND_EMAILS
             if (!empty($field)) {
                 // Extract the numeric ID from 'Email:2' to get '2'
                 $field_id = explode(":", $field)[1];
-                // var_dump($field_id); // This should output '2'
+                // remove opening and closing curly braces if they exist
+                $field_id = trim($field_id, '{}');
 
                 // Use rgar() to get the value for the extracted field ID
                 $email = rgar($entry, $field_id);
