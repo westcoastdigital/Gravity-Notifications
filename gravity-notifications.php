@@ -22,5 +22,24 @@ define('GNT_URL', plugin_dir_url(__FILE__));
 define('GNT_PATH', plugin_dir_path(__FILE__));
 define('GNT_FILE', __FILE__);
 
+// Include the updater class
+require_once plugin_dir_path(__FILE__) . 'github-updater.php';
+
+// For private repos, uncomment and add your token:
+// define('SW_GITHUB_ACCESS_TOKEN', 'your_token_here');
+
+if (class_exists('SimpliWeb_GitHub_Updater')) {
+    $updater = new SimpliWeb_GitHub_Updater(__FILE__);
+    $updater->set_username('westcoastdigital'); // Update Username
+    $updater->set_repository('Gravity-Notifications'); // Update plugin slug
+    
+    if (defined('GITHUB_ACCESS_TOKEN')) {
+      $updater->authorize(SW_GITHUB_ACCESS_TOKEN);
+    }
+    
+    $updater->initialize();
+}
+// ============================================
+
 
 include_once GNT_PATH . 'admin/init.php';
