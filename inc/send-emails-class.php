@@ -129,32 +129,24 @@ class GNT_SEND_EMAILS
         }
 
         $body = get_post_meta($id, '_gnt_message', true) ?? '';
-        if($body !== '') {
-            $body = do_shortcode($body); // Convert shortcodes in the body
+
+        // Process WordPress shortcodes first (e.g. [parrys_logo])
+        if ($body !== '') {
+            $body = do_shortcode($body);
         }
 
-        // Replace merge tags like {Label:1.3} or {Email:2}
-        preg_match_all('/{([^:}]+):([\d.]+)}/', $body, $matches, PREG_SET_ORDER);
-
-        foreach ($matches as $match) {
-            $full_tag = $match[0];       // e.g., {First Name:1.3}
-            $label = $match[1];          // e.g., First Name (not used here)
-            $field_id = $match[2];       // e.g., 1.3 or 2
-
-            $replacement = rgar($entry, $field_id) ?? '';  // Use rgar to get nested keys safely
-            $body = str_replace($full_tag, $replacement, $body);
+        // Process ALL Gravity Forms merge tags in the body:
+        //  - Standard field tags like {First Name:1.3}, {Email:2}
+        //  - Any custom tags registered via gform_replace_merge_tags (e.g. {brochure_link})
+        //  - GF's own built-in tags like {form_title}, {entry_id}, etc.
+        // Note: merge tag processing is intentionally limited to the body only.
+        // The global header/footer support shortcodes but not per-entry GF merge tags,
+        // since they may be used across multiple forms with different field structures.
+        if (class_exists('GFCommon')) {
+            $body = GFCommon::replace_variables($body, $form, $entry, false, false, false, 'html');
         }
-        
 
         $content = $header . $body . $footer;
-
-        // Replace merge tags like {Name:1} with actual field values
-        foreach ($entry as $key => $value) {
-            if (is_numeric($key)) {
-                $field_label = rgar($form['fields'][$key] ?? [], 'label') ?: $key;
-                $content = str_replace('{' . $field_label . ':' . $key . '}', $value, $content);
-            }
-        }
 
         $headers = array('Content-Type: text/html; charset=UTF-8');
         $headers[] = 'From: ' . $from . ' <' . $from_email . '>';
