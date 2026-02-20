@@ -17,6 +17,9 @@ class GNT_CPT_FIELDS
         add_action('admin_notices', [$this, 'maybe_show_errors']);
         add_filter('redirect_post_location', [$this, 'redirect_with_errors'], 10, 2);
         add_action('admin_footer', [$this, 'disable_sort']);
+        add_action('wp_ajax_gnt_get_gf_notifications', [$this, 'ajax_get_gf_notifications']);
+        add_action('wp_ajax_gnt_toggle_gf_notification', [$this, 'ajax_toggle_gf_notification']);
+        add_action('admin_footer', [$this, 'render_gf_notifications_modal']);
     }
 
     public function register_meta_box()
@@ -336,6 +339,7 @@ class GNT_CPT_FIELDS
 
         $row .= '</select>';
         $row .= '<button type="button" class="button-link gnt-remove-row">Remove</button>';
+        $row .= '<button type="button" class="button gnt-manage-gf-notifications" data-form-id="' . esc_attr($selected_form_id) . '" style="' . ($selected_form_id ? '' : 'display:none;') . '">Manage Default Notifications</button>';
         $row .= '</div>';
 
         // Conditional Logic Section
@@ -693,6 +697,78 @@ class GNT_CPT_FIELDS
     }
 
 
+    public function ajax_get_gf_notifications()
+    {
+        check_ajax_referer('gf_notifications_meta_box', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        $form_id = absint($_POST['form_id']);
+
+        if (!$form_id || !class_exists('GFAPI')) {
+            wp_send_json_error('Invalid form ID or Gravity Forms not available');
+        }
+
+        $form = GFAPI::get_form($form_id);
+
+        if (!$form) {
+            wp_send_json_error('Form not found');
+        }
+
+        $notifications = isset($form['notifications']) ? $form['notifications'] : [];
+        $result = [];
+
+        foreach ($notifications as $id => $notification) {
+            // GF treats missing isActive as true (active). Only explicit false = inactive.
+            $is_active = !isset($notification['isActive']) || $notification['isActive'] !== false;
+            $result[] = [
+                'id'       => $id,
+                'name'     => $notification['name'],
+                'isActive' => $is_active,
+            ];
+        }
+
+        wp_send_json_success([
+            'form_id'       => $form_id,
+            'form_title'    => $form['title'],
+            'notifications' => $result,
+        ]);
+    }
+
+    public function ajax_toggle_gf_notification()
+    {
+        check_ajax_referer('gf_notifications_meta_box', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        $form_id         = absint($_POST['form_id']);
+        $notification_id = sanitize_text_field($_POST['notification_id']);
+        $is_active       = filter_var($_POST['is_active'], FILTER_VALIDATE_BOOLEAN);
+
+        if (!$form_id || !$notification_id || !class_exists('GFAPI')) {
+            wp_send_json_error('Invalid parameters');
+        }
+
+        $form = GFAPI::get_form($form_id);
+
+        if (!$form || !isset($form['notifications'][$notification_id])) {
+            wp_send_json_error('Notification not found');
+        }
+
+        $form['notifications'][$notification_id]['isActive'] = $is_active;
+        $result = GFAPI::update_form($form);
+
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+        }
+
+        wp_send_json_success(['is_active' => $is_active]);
+    }
+
     public function redirect_with_errors($location, $post_id)
     {
         if (get_transient("gnt_notification_errors_{$post_id}")) {
@@ -744,6 +820,38 @@ class GNT_CPT_FIELDS
             </style>
             <?php
         }
+    }
+
+    public function render_gf_notifications_modal()
+    {
+        $screen = get_current_screen();
+        if (!$screen || $screen->post_type !== 'gf-notifications' || $screen->base !== 'post') {
+            return;
+        }
+        ?>
+        <div id="gnt-gf-notifications-modal" class="gnt-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="gnt-modal-title">
+            <div class="gnt-modal">
+                <div class="gnt-modal-header">
+                    <h2 id="gnt-modal-title">Default Notifications: <span class="gnt-modal-form-name"></span></h2>
+                    <button type="button" class="gnt-modal-close" aria-label="<?php esc_attr_e('Close', 'gnt'); ?>">&times;</button>
+                </div>
+                <div class="gnt-modal-body">
+                    <p class="gnt-modal-description">
+                        <?php _e("Toggle Gravity Forms' built-in notifications for this form on or off. Changes are saved immediately.", 'gnt'); ?>
+                    </p>
+                    <div id="gnt-gf-notifications-list">
+                        <span class="gnt-modal-loading">
+                            <span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>
+                            <?php _e('Loading notifications…', 'gnt'); ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="gnt-modal-footer">
+                    <button type="button" class="button button-primary gnt-modal-done"><?php _e('Done', 'gnt'); ?></button>
+                </div>
+            </div>
+        </div>
+        <?php
     }
 
     public function render_header() {

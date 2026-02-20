@@ -111,6 +111,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 conditionRow.remove();
             }
         }
+
+        // Open GF Notifications modal
+        if (e.target.matches('.gnt-manage-gf-notifications')) {
+            e.preventDefault();
+            openGfNotificationsModal(e.target);
+        }
+
+        // Close modal via close button or Done button
+        if (e.target.matches('.gnt-modal-close') || e.target.matches('.gnt-modal-done')) {
+            closeGfNotificationsModal();
+        }
     });
 
     // Use event delegation for form select changes
@@ -119,6 +130,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const formId = e.target.value;
             const row = e.target.closest('.gnt-repeater-row');
             const fieldSelects = row.querySelectorAll('.gnt-field-select');
+
+            // Show/hide and update the Manage Default Notifications button
+            const manageBtn = row.querySelector('.gnt-manage-gf-notifications');
+            if (manageBtn) {
+                if (formId) {
+                    manageBtn.setAttribute('data-form-id', formId);
+                    manageBtn.style.display = '';
+                } else {
+                    manageBtn.removeAttribute('data-form-id');
+                    manageBtn.style.display = 'none';
+                }
+            }
             
             if (!formId) {
                 fieldSelects.forEach(select => {
@@ -380,6 +403,147 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleDisplayHeaderPreview();
     toggleDisplayFooterPreview();
     clickOnEmailTag();
+
+    // Close modal when clicking the overlay background
+    document.body.addEventListener('click', function (e) {
+        if (e.target.matches('.gnt-modal-overlay')) {
+            closeGfNotificationsModal();
+        }
+    });
+
+    // === GF NOTIFICATIONS MODAL ===
+
+    function openGfNotificationsModal(btn) {
+        const formId = btn.getAttribute('data-form-id');
+        if (!formId) return;
+
+        const modal       = document.getElementById('gnt-gf-notifications-modal');
+        const listEl      = document.getElementById('gnt-gf-notifications-list');
+        const formNameEl  = modal.querySelector('.gnt-modal-form-name');
+
+        // Show the form title from the select label
+        const row = btn.closest('.gnt-repeater-row');
+        const select = row ? row.querySelector('.gnt-form-select') : null;
+        formNameEl.textContent = select ? select.options[select.selectedIndex].text : '';
+
+        // Show loading state
+        listEl.innerHTML = '<span class="gnt-modal-loading"><span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span> Loading notifications…</span>';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // Fetch notifications via AJAX
+        const formData = new FormData();
+        formData.append('action', 'gnt_get_gf_notifications');
+        formData.append('form_id', formId);
+
+        const nonceField = document.getElementById('gf_notifications_meta_box_nonce');
+        if (nonceField) formData.append('nonce', nonceField.value);
+
+        fetch(ajaxurl, { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    renderNotificationsList(listEl, formId, data.data.notifications);
+                } else {
+                    listEl.innerHTML = '<p class="gnt-modal-error">Error: ' + escapeHtml(data.data) + '</p>';
+                }
+            })
+            .catch(() => {
+                listEl.innerHTML = '<p class="gnt-modal-error">Failed to load notifications. Please try again.</p>';
+            });
+    }
+
+    function closeGfNotificationsModal() {
+        const modal = document.getElementById('gnt-gf-notifications-modal');
+        if (modal) modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function renderNotificationsList(container, formId, notifications) {
+        if (!notifications || notifications.length === 0) {
+            container.innerHTML = '<p class="gnt-modal-empty">No default notifications found for this form.</p>';
+            return;
+        }
+
+        let html = '<ul class="gnt-notifications-list">';
+        notifications.forEach(notif => {
+            const checkedAttr = notif.isActive ? 'checked' : '';
+            const statusLabel = notif.isActive ? 'Active' : 'Inactive';
+            const statusClass = notif.isActive ? 'gnt-notif-active' : 'gnt-notif-inactive';
+            html += `
+                <li class="gnt-notification-item" data-notification-id="${escapeHtml(String(notif.id))}" data-form-id="${escapeHtml(String(formId))}">
+                    <label class="gnt-notif-label">
+                        <span class="gnt-toggle gnt-notif-toggle">
+                            <input type="checkbox" class="gnt-gf-notif-toggle" ${checkedAttr}
+                                data-notification-id="${escapeHtml(String(notif.id))}"
+                                data-form-id="${escapeHtml(String(formId))}">
+                            <span class="gnt-slider"></span>
+                        </span>
+                        <span class="gnt-notif-name">${escapeHtml(notif.name)}</span>
+                    </label>
+                    <span class="gnt-notif-status ${statusClass}">${statusLabel}</span>
+                    <span class="gnt-notif-saving" style="display:none;">
+                        <span class="spinner is-active" style="float:none;width:16px;height:16px;margin:0 4px 0 0;"></span>Saving…
+                    </span>
+                </li>`;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+
+        // Attach toggle listeners
+        container.querySelectorAll('.gnt-gf-notif-toggle').forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                handleNotificationToggle(this);
+            });
+        });
+    }
+
+    function handleNotificationToggle(checkbox) {
+        const notificationId = checkbox.getAttribute('data-notification-id');
+        const formId         = checkbox.getAttribute('data-form-id');
+        const isActive       = checkbox.checked;
+        const listItem       = checkbox.closest('.gnt-notification-item');
+        const statusEl       = listItem.querySelector('.gnt-notif-status');
+        const savingEl       = listItem.querySelector('.gnt-notif-saving');
+
+        // Disable and show saving indicator
+        checkbox.disabled = true;
+        savingEl.style.display = 'inline-flex';
+        statusEl.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('action', 'gnt_toggle_gf_notification');
+        formData.append('form_id', formId);
+        formData.append('notification_id', notificationId);
+        formData.append('is_active', isActive ? '1' : '0');
+
+        const nonceField = document.getElementById('gf_notifications_meta_box_nonce');
+        if (nonceField) formData.append('nonce', nonceField.value);
+
+        fetch(ajaxurl, { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const active = data.data.is_active;
+                    statusEl.textContent = active ? 'Active' : 'Inactive';
+                    statusEl.className   = 'gnt-notif-status ' + (active ? 'gnt-notif-active' : 'gnt-notif-inactive');
+                    checkbox.checked = active;
+                } else {
+                    // Revert on failure
+                    checkbox.checked = !isActive;
+                    alert('Could not save: ' + (data.data || 'Unknown error'));
+                }
+            })
+            .catch(() => {
+                checkbox.checked = !isActive;
+                alert('Network error. Please try again.');
+            })
+            .finally(() => {
+                checkbox.disabled = false;
+                savingEl.style.display = 'none';
+                statusEl.style.display = '';
+            });
+    }
 });
 
 
