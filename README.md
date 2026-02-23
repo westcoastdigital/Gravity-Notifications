@@ -128,6 +128,9 @@ For compound fields like Name or Address, sub-field tags are used:
 
 ## Changelog
 
+**1.6.2** UX Fix<br>
+* If enter an invalid email into the Email Configurations and then click off to Use Form Field ID, it will clear the invalid email. This fixes accidently adding a merge tag in email instead of the correct merge tag field
+
 **1.6.1** Bug Fix<br>
 * Replaced manual merge tag regex with `GFCommon::replace_variables()` so all Gravity Forms merge tags are processed correctly in the message body — including custom tags registered via `gform_replace_merge_tags` (e.g. `{brochure_link}`, `{current_year}`)
 * Shortcode rendering (`do_shortcode`) now correctly runs before merge tag replacement in the body
