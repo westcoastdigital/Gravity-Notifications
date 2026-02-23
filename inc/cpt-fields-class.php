@@ -159,7 +159,7 @@ class GNT_CPT_FIELDS
             echo '<div class="right">';
             echo '<h2 style="padding: 0;">' . __('Available Merge Tags', 'gnt') . '</h2>';
             echo '<small>' . __('You can use a merge tag to to dynamically populate from form inputs. eg: {Name:1.3} would return the first name of a Name field', 'gnt') . '</small>';
-            echo $this->render_merge_tags($post->ID);
+            echo '<div id="gnt-merge-tags-container">' . $this->render_merge_tags($post->ID) . '</div>';
 
             echo '</div>';
             echo '</div>';
@@ -222,7 +222,7 @@ class GNT_CPT_FIELDS
     private function render_merge_tags($post_id, $class = 'gnt-merge-tag', $email_only = false)
     {
         $assigned_forms = get_post_meta($post_id, '_gnt_assigned_forms', true);
-        $use_all_forms = get_post_meta($post_id, '_gnt_use_all_forms', true);
+        $use_all_forms  = get_post_meta($post_id, '_gnt_use_all_forms', true);
 
         if (!class_exists('GFAPI')) {
             return '<p><em>Gravity Forms not available.</em></p>';
@@ -244,6 +244,11 @@ class GNT_CPT_FIELDS
             }
         }
 
+        return $this->render_merge_tags_from_forms($forms_to_process, $class, $email_only);
+    }
+
+    private function render_merge_tags_from_forms($forms_to_process = [], $class = 'gnt-merge-tag', $email_only = false)
+    {
         if (empty($forms_to_process)) {
             return '<p><em>No forms assigned. Assign forms to see available merge tags.</em></p>';
         }
@@ -261,14 +266,13 @@ class GNT_CPT_FIELDS
                     }
 
                     $merge_tag = '{' . $field->label . ':' . $field->id . '}';
-                    $output .= '<span class="' . $class . '">' . esc_html($merge_tag) . '</span>';
+                    $output .= '<span class="' . esc_attr($class) . '" data-tag="' . esc_attr($merge_tag) . '">' . esc_html($merge_tag) . '</span>';
 
-                    // Add sub-fields (like name fields) only if not email_only
                     if (!$email_only && $field->type === 'name' && !empty($field->inputs)) {
                         foreach ($field->inputs as $input) {
                             if (!isset($input['isHidden']) || !$input['isHidden']) {
                                 $sub_merge_tag = '{' . $field->label . ':' . $input['id'] . '}';
-                                $output .= '<span class="gnt-merge-tag">' . esc_html($sub_merge_tag) . '</span>';
+                                $output .= '<span class="gnt-merge-tag" data-tag="' . esc_attr($sub_merge_tag) . '">' . esc_html($sub_merge_tag) . '</span>';
                             }
                         }
                     }
@@ -292,13 +296,29 @@ class GNT_CPT_FIELDS
             wp_die('Unauthorized');
         }
 
-        $post_id = absint($_POST['post_id']);
-
-        if (!$post_id) {
-            wp_send_json_error('Invalid post ID');
+        if (!class_exists('GFAPI')) {
+            wp_send_json_error('Gravity Forms not available');
         }
 
-        $html = $this->render_merge_tags($post_id);
+        $use_all_forms = !empty($_POST['use_all_forms']) && $_POST['use_all_forms'] === '1';
+        $form_ids      = isset($_POST['form_ids']) && is_array($_POST['form_ids'])
+            ? array_unique(array_filter(array_map('absint', $_POST['form_ids'])))
+            : [];
+
+        $forms_to_process = [];
+
+        if ($use_all_forms) {
+            $forms_to_process = GFAPI::get_forms();
+        } else {
+            foreach ($form_ids as $form_id) {
+                $form = GFAPI::get_form($form_id);
+                if ($form) {
+                    $forms_to_process[] = $form;
+                }
+            }
+        }
+
+        $html = $this->render_merge_tags_from_forms($forms_to_process);
         wp_send_json_success(['html' => $html]);
     }
 

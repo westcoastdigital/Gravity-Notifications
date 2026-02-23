@@ -17,6 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Validates a single email or a comma-separated list of emails
+    function isValidEmailList(value) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return value.split(',').map(e => e.trim()).filter(Boolean).every(e => emailRegex.test(e));
+    }
+
     function updateToEmailVisibility() {
         const selectedType = document.querySelector('input[name="gnt_to_email_type"]:checked');
         
@@ -25,6 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 toEmailEnterDiv.style.display = 'block';
                 toEmailFieldDiv.style.display = 'none';
             } else if (selectedType.value === 'field_id') {
+                const emailInput = toEmailEnterDiv.querySelector('input[name="gnt_to_email"]');
+                if (emailInput && emailInput.value.trim() !== '' && !isValidEmailList(emailInput.value)) {
+                    emailInput.value = '';
+                }
                 toEmailEnterDiv.style.display = 'none';
                 toEmailFieldDiv.style.display = 'block';
             }
@@ -32,9 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (allFormsToggle) {
-        allFormsToggle.addEventListener('change', updateVisibility);
-        updateVisibility(); // Initialize visibility on page load
-        setTimeout(refreshMergeTags, 100);
+        allFormsToggle.addEventListener('change', function() {
+            updateVisibility();
+            refreshMergeTags();
+        });
+        updateVisibility();
+        refreshMergeTags(); // Initial render on page load
     }
 
     // Initialize to email visibility
@@ -54,13 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (template) {
                 const clone = template.cloneNode(true);
                 
-                // Update indices in the cloned template
                 let html = clone.innerHTML.replace(/TEMPLATE_INDEX/g, rowIndex);
                 clone.innerHTML = html;
                 clone.setAttribute('data-index', rowIndex);
                 clone.style.display = '';
                 
-                // Insert before the add button
                 wrapper.insertBefore(clone, addBtn);
                 rowIndex++;
             }
@@ -69,16 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Use event delegation for all dynamic buttons and form changes
     document.body.addEventListener('click', function (e) {
-        // Remove form row
         if (e.target.matches('.gnt-remove-row')) {
             e.preventDefault();
             const row = e.target.closest('.gnt-repeater-row');
-            if (row && !row.style.display.includes('none')) { // Don't remove the template
+            if (row && !row.style.display.includes('none')) {
                 row.remove();
+                refreshMergeTags(); // Update when a row is removed
             }
         }
         
-        // Add new condition
         if (e.target.matches('.gnt-add-condition')) {
             e.preventDefault();
             const conditionsContainer = e.target.parentElement;
@@ -87,38 +97,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (template) {
                 const newCondition = template.cloneNode(true);
                 const formIndex = e.target.closest('.gnt-repeater-row').getAttribute('data-index');
-                const conditionIndex = Date.now(); // Use timestamp for unique index
+                const conditionIndex = Date.now();
                 
-                // Update indices in the condition row
                 let html = newCondition.innerHTML.replace(/CONDITION_TEMPLATE/g, conditionIndex);
                 newCondition.innerHTML = html;
                 newCondition.setAttribute('data-condition-index', conditionIndex);
                 newCondition.style.display = '';
                 
-                // Insert before the template
                 conditionsContainer.insertBefore(newCondition, template);
-                
-                // Initialize dynamic value field for the new condition row
                 initializeDynamicValueFieldsForRow(newCondition);
             }
         }
         
-        // Remove condition
         if (e.target.matches('.gnt-remove-condition')) {
             e.preventDefault();
             const conditionRow = e.target.closest('.gnt-condition-row');
-            if (conditionRow && !conditionRow.style.display.includes('none')) { // Don't remove the template
+            if (conditionRow && !conditionRow.style.display.includes('none')) {
                 conditionRow.remove();
             }
         }
 
-        // Open GF Notifications modal
         if (e.target.matches('.gnt-manage-gf-notifications')) {
             e.preventDefault();
             openGfNotificationsModal(e.target);
         }
 
-        // Close modal via close button or Done button
         if (e.target.matches('.gnt-modal-close') || e.target.matches('.gnt-modal-done')) {
             closeGfNotificationsModal();
         }
@@ -131,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = e.target.closest('.gnt-repeater-row');
             const fieldSelects = row.querySelectorAll('.gnt-field-select');
 
-            // Show/hide and update the Manage Default Notifications button
             const manageBtn = row.querySelector('.gnt-manage-gf-notifications');
             if (manageBtn) {
                 if (formId) {
@@ -147,21 +149,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 fieldSelects.forEach(select => {
                     select.innerHTML = '<option value="">Select a field</option>';
                 });
+                refreshMergeTags(); // Update when a form is deselected
                 return;
             }
             
-            // Create FormData object for the AJAX request
             const formData = new FormData();
             formData.append('action', 'gnt_get_form_fields');
             formData.append('form_id', formId);
             
-            // Get nonce value
             const nonceField = document.getElementById('gf_notifications_meta_box_nonce');
             if (nonceField) {
                 formData.append('nonce', nonceField.value);
             }
-            
-            // Make AJAX request using fetch
+
+            // Kick off the field-population fetch
             fetch(ajaxurl, {
                 method: 'POST',
                 body: formData
@@ -175,11 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         options += `<option value="${field.id}" data-field-type="${field.type}" data-has-choices="${hasChoices}">${escapeHtml(field.label)}</option>`;
                     });
                     fieldSelects.forEach(select => {
-                        // Store current value to restore if it exists in new options
                         const currentValue = select.value;
                         select.innerHTML = options;
-                        
-                        // Try to restore previous selection if it still exists
                         if (currentValue) {
                             const optionExists = select.querySelector(`option[value="${currentValue}"]`);
                             if (optionExists) {
@@ -201,11 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // update merge tags after form change
-            setTimeout(refreshMergeTags, 100);
+            // Refresh merge tags — debounced so rapid multi-row changes
+            // collapse into a single request.
+            refreshMergeTags();
         }
         
-        // Handle field selection changes for dynamic value fields
         if (e.target.matches('.gnt-field-select')) {
             handleFieldSelectionChange(e.target);
         }
@@ -216,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === DYNAMIC VALUE FIELD FUNCTIONS ===
 
-    // Function to handle field selection changes
     function handleFieldSelectionChange(fieldSelect) {
         const conditionRow = fieldSelect.closest('.gnt-condition-row');
         const valueContainer = conditionRow.querySelector('.gnt-condition-value');
@@ -225,31 +222,24 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
         const hasChoices = selectedOption.getAttribute('data-has-choices') === '1';
-        const fieldType = selectedOption.getAttribute('data-field-type');
         
         if (hasChoices && fieldSelect.value) {
-            // Get form ID from the form select in the same repeater row
             const formRow = fieldSelect.closest('.gnt-repeater-row');
             const formSelect = formRow.querySelector('.gnt-form-select');
             const formId = formSelect.value;
             const fieldId = fieldSelect.value;
             
             if (formId && fieldId) {
-                // Fetch field choices via AJAX
                 fetchFieldChoices(formId, fieldId, selectInput, textInput);
             } else {
-                // Show text input if no form/field selected
                 showTextInput(textInput, selectInput);
             }
         } else {
-            // Show text input for fields without choices
             showTextInput(textInput, selectInput);
         }
     }
 
-    // Function to fetch field choices via AJAX
     function fetchFieldChoices(formId, fieldId, selectInput, textInput) {
-        // Show loading state
         selectInput.innerHTML = '<option value="">Loading...</option>';
         selectInput.style.display = 'block';
         textInput.style.display = 'none';
@@ -259,27 +249,21 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('form_id', formId);
         formData.append('field_id', fieldId);
         
-        // Get nonce value
         const nonceField = document.getElementById('gf_notifications_meta_box_nonce');
         if (nonceField) {
             formData.append('nonce', nonceField.value);
         }
         
-        fetch(ajaxurl, {
-            method: 'POST',
-            body: formData
-        })
+        fetch(ajaxurl, { method: 'POST', body: formData })
         .then(response => response.json())
         .then(data => {
             if (data.success && data.data.has_choices) {
-                // Populate select with choices
                 let options = '<option value="">Select a value</option>';
                 data.data.choices.forEach(function(choice) {
                     options += `<option value="${escapeHtml(choice.value)}">${escapeHtml(choice.text)}</option>`;
                 });
                 selectInput.innerHTML = options;
                 
-                // Copy any existing text value to select if it matches
                 const currentTextValue = textInput.value;
                 if (currentTextValue) {
                     selectInput.value = currentTextValue;
@@ -287,94 +271,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 showSelectInput(selectInput, textInput);
             } else {
-                // Field doesn't have choices, show text input
                 showTextInput(textInput, selectInput);
             }
         })
         .catch(error => {
             console.error('Error fetching field choices:', error);
-            // On error, fall back to text input
             showTextInput(textInput, selectInput);
         });
     }
 
-    // Function to show text input and hide select
     function showTextInput(textInput, selectInput) {
-        // Copy select value to text input if exists
         const selectValue = selectInput.value;
         if (selectValue && !textInput.value) {
             textInput.value = selectValue;
         }
-        
         textInput.style.display = 'block';
         selectInput.style.display = 'none';
-        
-        // Update the name attribute to use the text input
         updateValueInputNames(textInput, selectInput, 'text');
     }
 
-    // Function to show select input and hide text
     function showSelectInput(selectInput, textInput) {
-        // Copy text value to select if it matches an option
         const textValue = textInput.value;
         if (textValue) {
             selectInput.value = textValue;
         }
-        
         selectInput.style.display = 'block';
         textInput.style.display = 'none';
-        
-        // Update the name attribute to use the select input
         updateValueInputNames(textInput, selectInput, 'select');
     }
 
-    // Function to update the name attributes so only the active input is submitted
     function updateValueInputNames(textInput, selectInput, activeType) {
         if (activeType === 'text') {
-            // Text input should be submitted
             const originalName = textInput.getAttribute('name') || selectInput.getAttribute('name').replace('_select', '');
             textInput.setAttribute('name', originalName);
             selectInput.setAttribute('name', originalName + '_select_disabled');
         } else {
-            // Select input should be submitted
             const originalName = selectInput.getAttribute('name').replace('_select', '');
             selectInput.setAttribute('name', originalName);
             textInput.setAttribute('name', originalName + '_text_disabled');
         }
     }
 
-    // Function to initialize dynamic value fields on page load
     function initializeDynamicValueFields() {
-        // Check existing condition rows on page load
         const visibleConditionRows = document.querySelectorAll('.gnt-condition-row:not([style*="display:none"])');
         visibleConditionRows.forEach(function(conditionRow) {
             const fieldSelect = conditionRow.querySelector('.gnt-field-select');
-            
-            // Trigger change event to set up the value field correctly
             if (fieldSelect && fieldSelect.value) {
                 handleFieldSelectionChange(fieldSelect);
             }
         });
     }
 
-    // Function to initialize dynamic value fields for a specific row (used when adding new conditions)
     function initializeDynamicValueFieldsForRow(conditionRow) {
         const valueContainer = conditionRow.querySelector('.gnt-condition-value');
         const textInput = valueContainer.querySelector('.gnt-condition-text-value');
         const selectInput = valueContainer.querySelector('.gnt-condition-select-value');
-        
-        // Ensure text input is shown by default for new rows
         showTextInput(textInput, selectInput);
     }
 
-    // Helper function to escape HTML
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
-    // Initialize merge tag clicks
+    // Initialize merge tag clicks on page load
     initializeMergeTagClicks();
     
     // Clone the existing Publish/Update button
@@ -385,15 +346,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clone.id = 'publish-bottom';
         clone.innerText = originalButton.innerText;
 
-        // Insert it below the custom fields box
-        const target = document.querySelector('#gf_notification_settings'); // Replace with your actual custom fields container ID
+        const target = document.querySelector('#gf_notification_settings');
         if (target) {
             const wrapper = document.createElement('div');
             wrapper.id = 'gnt-publish-button-wrapper';
             wrapper.appendChild(clone);
             target.parentNode.insertBefore(wrapper, target.nextSibling);
 
-            // Ensure both buttons submit the form
             clone.addEventListener('click', function () {
                 originalButton.click();
             });
@@ -421,17 +380,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const listEl      = document.getElementById('gnt-gf-notifications-list');
         const formNameEl  = modal.querySelector('.gnt-modal-form-name');
 
-        // Show the form title from the select label
         const row = btn.closest('.gnt-repeater-row');
         const select = row ? row.querySelector('.gnt-form-select') : null;
         formNameEl.textContent = select ? select.options[select.selectedIndex].text : '';
 
-        // Show loading state
         listEl.innerHTML = '<span class="gnt-modal-loading"><span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span> Loading notifications…</span>';
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
 
-        // Fetch notifications via AJAX
         const formData = new FormData();
         formData.append('action', 'gnt_get_gf_notifications');
         formData.append('form_id', formId);
@@ -490,7 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
         html += '</ul>';
         container.innerHTML = html;
 
-        // Attach toggle listeners
         container.querySelectorAll('.gnt-gf-notif-toggle').forEach(checkbox => {
             checkbox.addEventListener('change', function () {
                 handleNotificationToggle(this);
@@ -506,7 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusEl       = listItem.querySelector('.gnt-notif-status');
         const savingEl       = listItem.querySelector('.gnt-notif-saving');
 
-        // Disable and show saving indicator
         checkbox.disabled = true;
         savingEl.style.display = 'inline-flex';
         statusEl.style.display = 'none';
@@ -529,7 +483,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     statusEl.className   = 'gnt-notif-status ' + (active ? 'gnt-notif-active' : 'gnt-notif-inactive');
                     checkbox.checked = active;
                 } else {
-                    // Revert on failure
                     checkbox.checked = !isActive;
                     alert('Could not save: ' + (data.data || 'Unknown error'));
                 }
@@ -547,43 +500,74 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// Function to refresh merge tags when forms change
+// =============================================================================
+// MERGE TAG REFRESH
+// Debounced so rapid successive calls (multiple rows changing at once, page
+// init, etc.) collapse into a single trailing fetch.
+// An incrementing request-ID guard ensures stale in-flight responses never
+// overwrite a newer result.
+// =============================================================================
+let _mergeTagDebounceTimer = null;
+let _mergeTagRequestId     = 0;
+
 function refreshMergeTags() {
+    clearTimeout(_mergeTagDebounceTimer);
+    _mergeTagDebounceTimer = setTimeout(_doRefreshMergeTags, 150);
+}
+
+function _doRefreshMergeTags() {
     const container = document.getElementById('gnt-merge-tags-container');
     if (!container) return;
-    
-    // Get current post ID from URL or hidden field
-    const postId = getPostId();
-    if (!postId) return;
-    
+
+    const nonce          = document.getElementById('gf_notifications_meta_box_nonce');
+    const allFormsToggle = document.querySelector('input[name="gnt_use_all_forms"]');
+    const useAllForms    = allFormsToggle && allFormsToggle.checked;
+
+    // Collect unique non-empty form IDs from all visible repeater rows
+    const formIds = [];
+    if (!useAllForms) {
+        document.querySelectorAll('.gnt-repeater-row').forEach(row => {
+            if (row.style.display === 'none') return; // skip hidden template
+            const select = row.querySelector('.gnt-form-select');
+            if (select && select.value) {
+                formIds.push(select.value);
+            }
+        });
+    }
+
+    // No forms selected — show placeholder immediately, no server round-trip
+    if (!useAllForms && formIds.length === 0) {
+        container.innerHTML = '<p><em>No forms assigned. Assign forms to see available merge tags.</em></p>';
+        return;
+    }
+
+    container.innerHTML = '<p>Loading merge tags…</p>';
+
+    const thisRequestId = ++_mergeTagRequestId;
+
     const formData = new FormData();
     formData.append('action', 'gnt_refresh_merge_tags');
-    formData.append('post_id', postId);
-    
-    const nonceField = document.getElementById('gf_notifications_meta_box_nonce');
-    if (nonceField) {
-        formData.append('nonce', nonceField.value);
-    }
-    
-    container.innerHTML = '<p>Loading merge tags...</p>';
-    
-    fetch(ajaxurl, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            container.innerHTML = data.data.html;
-            initializeMergeTagClicks();
-        } else {
+    formData.append('use_all_forms', useAllForms ? '1' : '0');
+    formIds.forEach(id => formData.append('form_ids[]', id));
+    if (nonce) formData.append('nonce', nonce.value);
+
+    fetch(ajaxurl, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+            if (thisRequestId !== _mergeTagRequestId) return; // stale — discard
+
+            if (data.success) {
+                container.innerHTML = data.data.html;
+                initializeMergeTagClicks();
+            } else {
+                container.innerHTML = '<p>Error loading merge tags.</p>';
+            }
+        })
+        .catch(error => {
+            if (thisRequestId !== _mergeTagRequestId) return;
+            console.error('Error refreshing merge tags:', error);
             container.innerHTML = '<p>Error loading merge tags.</p>';
-        }
-    })
-    .catch(error => {
-        console.error('Error refreshing merge tags:', error);
-        container.innerHTML = '<p>Error loading merge tags.</p>';
-    });
+        });
 }
 
 // Helper function to get post ID
@@ -592,7 +576,7 @@ function getPostId() {
     return urlParams.get('post') || document.getElementById('post_ID')?.value;
 }
 
-// Function to make merge tags clickable
+// Make merge tags clickable — inserts into TinyMCE or textarea
 function initializeMergeTagClicks() {
     document.querySelectorAll('.gnt-merge-tag').forEach(tag => {
         tag.style.cursor = 'pointer';
@@ -610,7 +594,6 @@ function initializeMergeTagClicks() {
             if (editor && !editor.isHidden()) {
                 editor.execCommand('mceInsertContent', false, mergeTag);
             } else {
-                // Fallback to textarea
                 const textarea = document.querySelector('textarea[name="gnt_message"]');
                 if (textarea) {
                     const cursorPos = textarea.selectionStart;
@@ -625,7 +608,6 @@ function initializeMergeTagClicks() {
     });
 }
 
-// Function to refresh email field dropdown
 function refreshEmailFieldDropdown() {
     const emailFieldSelect = document.querySelector('.gnt-email-field-select');
     if (!emailFieldSelect) return;
@@ -644,15 +626,11 @@ function refreshEmailFieldDropdown() {
     
     const currentValue = emailFieldSelect.value;
     
-    fetch(ajaxurl, {
-        method: 'POST',
-        body: formData
-    })
+    fetch(ajaxurl, { method: 'POST', body: formData })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             emailFieldSelect.innerHTML = data.data.html;
-            // Try to restore previous selection
             if (currentValue) {
                 emailFieldSelect.value = currentValue;
             }
@@ -667,7 +645,6 @@ function toggleDisplayHeaderPreview() {
     const headerPreview = document.querySelector('.gnt-header-output');
     const toggleButton = document.querySelector('input[name="gnt_use_global_header"]');
     if (toggleButton && headerPreview) {
-        // listen for changes to the toggle button
         toggleButton.addEventListener('change', function() {
             headerPreview.style.display = this.checked ? 'block' : 'none';
         });
@@ -678,7 +655,6 @@ function toggleDisplayFooterPreview() {
     const footerPreview = document.querySelector('.gnt-footer-output');
     const toggleButton = document.querySelector('input[name="gnt_use_global_footer"]');
     if (toggleButton && footerPreview) {
-        // listen for changes to the toggle button
         toggleButton.addEventListener('change', function() {
             footerPreview.style.display = this.checked ? 'block' : 'none';
         });
@@ -687,15 +663,12 @@ function toggleDisplayFooterPreview() {
 
 function clickOnEmailTag() {
     const emailTags = document.querySelectorAll('.gnt-email-tag');
-    if(!emailTags.length) return;
+    if (!emailTags.length) return;
     const emailFieldSelect = document.querySelector('input[name="gnt_to_email_field_id"]');
     if (!emailFieldSelect) return;
     emailTags.forEach(tag => {
         tag.addEventListener('click', function() {
-            // get the text of span
-            const tagText = this.textContent.trim();
-            // set the value of input to the text
-            emailFieldSelect.value = tagText;
+            emailFieldSelect.value = this.textContent.trim();
         });
     });
 }
